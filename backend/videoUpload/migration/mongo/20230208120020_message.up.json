@@ -1,0 +1,17 @@
+[
+    {
+        "create": "message"
+    },
+    {
+        "createIndexes": "message",
+        "indexes": [
+            {
+                "key":  {
+                    "createTime": -1,
+                    "videoId" : -1
+                },
+                "name": "Time" 
+            }
+        ]
+    }
+]

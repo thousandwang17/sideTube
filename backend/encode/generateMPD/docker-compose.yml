@@ -1,0 +1,38 @@
+version : '3'
+services:
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: generateMPD
+    restart: always
+    networks: 
+     - network_mongo
+    volumes:
+    - ../../../../tempVideo/:/var/videos/
+    environment:
+      - VIDEO_PATH=/var/videos/
+      - RABBIT_USER_NAME=guest
+      - RABBIT_USER_PASS=guest
+      - RABBIT_HOST=172.17.0.1
+      - RABBIT_PORT=5672
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - REDIS_HOST=172.17.0.1
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - NUMBER_OF_WORKER=1
+      - MONGODB_USERNAME=root
+      - MONGODB_PASSWORD=root
+      - MONGODB_HOST=mongodb://172.17.0.1:27017/
+      - MONGO_DATABASE=video_meta
+      - MONGO_COLLECTION=videoMeta
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+
+
+

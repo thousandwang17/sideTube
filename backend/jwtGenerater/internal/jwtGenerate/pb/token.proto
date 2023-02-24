@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option go_package = "./;JwtGererater";
+
+package JwtToken;
+
+service JwtToken {
+  rpc Login (RequsetLogin) returns (RespondLogin) {}
+}
+
+message RequsetLogin {
+    string account = 1;
+    string passwordHash = 2;
+}
+
+message RespondLogin {
+  int32 status_code = 1;
+  string error_message = 2;
+  tokens data = 3;
+}
+
+message tokens {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+
+
+
+

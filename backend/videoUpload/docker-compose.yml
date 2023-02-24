@@ -1,0 +1,40 @@
+version : '3'
+services:
+  videoupload:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: videoUpload
+    restart: always
+    networks: 
+     - network_mongo
+    volumes:
+    - ../../../tempVideo/:/var/videos/
+    ports:
+      - "3001:80"
+    environment:
+      - HTTP_ADDRESS=0.0.0.0
+      - HTTP_PORT=80
+      - VIDEO_PATH=/var/videos/
+      - MONGODB_USERNAME=root
+      - MONGODB_PASSWORD=root
+      - MONGODB_HOST=mongodb://172.17.0.1:27017/
+      - MONGO_DATABASE=video_meta
+      - MONGO_COLLECTION=videoMeta
+      - JWT_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
+      - JWT_HEADER_ALG=HS256
+      - RABBIT_USER_NAME=guest
+      - RABBIT_USER_PASS=guest
+      - RABBIT_HOST=172.17.0.1
+      - RABBIT_PORT=5672
+      - MERGE_VIDEO_EXCHANGE=merge_video_exchange
+      - MERGE_VIDEO_QUEUE=merge_video
+
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+
+
+

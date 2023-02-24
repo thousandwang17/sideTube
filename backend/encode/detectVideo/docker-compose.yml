@@ -1,0 +1,35 @@
+version : '3'
+services:
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: detectVideo
+    restart: always
+    networks: 
+     - network_mongo
+    volumes:
+    - ../../../../tempVideo/:/var/videos/
+    environment:
+      - VIDEO_PATH=/var/videos/
+      - RABBIT_USER_NAME=guest
+      - RABBIT_USER_PASS=guest
+      - RABBIT_HOST=172.17.0.1
+      - RABBIT_PORT=5672
+      - ENCODE_VIDEO_EXCHANGE=encode_video_exchange
+      - ENCODE_VIDEO_QUEUE=encode_video
+      - DECTED_VIDEO_EXCHANGE=dected_video_exchange
+      - DECTED_VIDEO_QUEUE=dected_video
+      - REDIS_HOST=172.17.0.1
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - NUMBER_OF_WORKER=1
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+
+
+
