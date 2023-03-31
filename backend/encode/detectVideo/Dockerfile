@@ -9,6 +9,9 @@ FROM ubuntu:22.04
 # Update the package list and install necessary packages
 RUN apt-get update \
     && apt-get install -y ffmpeg
-RUN mkdir /var/videos
+
+RUN mkdir /var/videos 
+# Copy the binary from the builder stage
 COPY --from=0 /src/detectVideo /
+
 ENTRYPOINT ["/detectVideo"]

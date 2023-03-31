@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-29 17:06:28
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-15 15:34:38
+ * @LastEditTime: 2023-03-28 14:56:43
  * @FilePath: /videoUpload/internal/videoUpload/service/service.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -51,7 +51,8 @@ func (v service) EditInfo() error {
 func (v service) StartUpload(c context.Context, chundCount int32) (string, error) {
 
 	userId := c.Value("uid").(string)
-	videoId, err := v.metaRepo.Insert(c, userId)
+	name := c.Value("userName").(string)
+	videoId, err := v.metaRepo.Insert(c, userId, name)
 	if err != nil {
 		return "", err
 	}
@@ -104,6 +105,7 @@ func (v service) FinishUpload(c context.Context, videoId string) error {
 		if err := v.metaRepo.UndoUpdateState(c, videoId, userId); err != nil {
 			log.Println("failed to undo err: ", err)
 		}
+		log.Println("failed to Notify MergeVideo err: ", err)
 		return FaildToFinishUpload
 	}
 	return nil

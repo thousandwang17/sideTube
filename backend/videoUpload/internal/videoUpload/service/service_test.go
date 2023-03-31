@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-10 14:50:43
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-15 15:22:14
+ * @LastEditTime: 2023-03-02 21:04:39
  * @FilePath: /videoUpload/internal/videoUpload/service/service_test.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -51,7 +51,7 @@ func newMetaRepo(id string, err error) *metaRepo {
 	return &metaRepo{id, err}
 }
 
-func (m metaRepo) Insert(c context.Context, userId string) (id string, err error) {
+func (m metaRepo) Insert(c context.Context, userId, userName string) (id string, err error) {
 	return m.id, m.err
 }
 

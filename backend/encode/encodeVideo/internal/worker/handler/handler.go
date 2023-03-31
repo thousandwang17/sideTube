@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-16 12:09:49
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 00:17:27
+ * @LastEditTime: 2023-03-16 20:36:42
  * @FilePath: /encodeVideo/internal/worker/handler/handler.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -98,6 +99,14 @@ L:
 	select {
 	case <-down:
 		log.Println("mission done")
+		select {
+		case _, _ = <-h.notifyClose:
+			// will keep go on and  shut down the server
+		default:
+			// if rabbitmq connect closed, it will get there. we exit the progrem and using docker to restart
+			os.Exit(0)
+		}
+
 	case <-ctx.Done():
 		log.Println("Warring : context timeout ")
 	}
@@ -142,8 +151,14 @@ func (h *handle) helper(d amqp091.Delivery) {
 		return
 	}
 
+	if mission.MissionType != worker.VideoType {
+		log.Println("Mission type is not videoType ", mission, err)
+		d.Nack(false, false)
+		return
+	}
+
 	// lock this message by videoID
-	if done, err := h.lockRepo.Lock(ctx, mission.VideoId, mission.MissionID, TimeOut); err != nil {
+	if done, err := h.lockRepo.Lock(ctx, mission.VideoId, mission.MissionID, mission.SubMissionID, TimeOut); err != nil {
 		// if connect lost or key alerdy exist, just re-queue the message
 		log.Println("lock err : ", err)
 
@@ -157,7 +172,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 		return
 	}
 
-	defer h.lockRepo.UnLock(ctx, mission.VideoId, mission.MissionID)
+	defer h.lockRepo.UnLock(ctx, mission.VideoId, mission.MissionID, mission.SubMissionID)
 
 	fileName, err := h.videoRepo.EncodeVideo(ctx, mission)
 	if err != nil {
@@ -171,8 +186,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 		return
 	}
 
-	if alldone, err := h.lockRepo.AccomplishbMission(ctx, mission, fileName); err != nil {
-		log.Print("123 ", err)
+	if alldone, err := h.lockRepo.AccomplishbSubMission(ctx, mission, fileName); err != nil {
 		if err := h.queueRepo.ReQueue(ctx, b, delay); err != nil {
 			// if err, let message retry
 			d.Nack(false, true)
@@ -180,13 +194,17 @@ func (h *handle) helper(d amqp091.Delivery) {
 		AckTrue(d)
 		return
 	} else if alldone {
-		// if all mission done , we publish mission to generate mpd file
+		// if sub mission all done , we publish mission to merge video file
 
-		// encode
+		// merge mission
 		missionByte, err := json.Marshal(worker.Mission{
-			VideoId: mission.VideoId,
-			UserId:  mission.UserId,
-			Time:    time.Now(),
+			VideoId:    mission.VideoId,
+			MissionID:  mission.MissionID,
+			Height:     mission.VideoFormat.Height,
+			TotalChunk: mission.TotalChunk,
+			Fps:        mission.VideoFormat.Fps,
+			UserId:     mission.UserId,
+			Time:       time.Now(),
 		})
 
 		if err != nil {
@@ -196,7 +214,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 		}
 
 		// publish encoding mission
-		if err = h.queueRepo.PublishGenerateMpd(ctx, missionByte); err != nil {
+		if err = h.queueRepo.PublishMergeEncodedVideo(ctx, missionByte); err != nil {
 			log.Print(err)
 			if err := h.queueRepo.ReQueue(ctx, b, delay); err != nil {
 				// if err, let message retry
@@ -219,7 +237,7 @@ func (h *handle) Shutdown() {
 }
 
 func AckTrue(d amqp091.Delivery) error {
-	if err := d.Ack(true); err != nil {
+	if err := d.Ack(false); err != nil {
 		fmt.Println("d.Ack err: ", err)
 		return err
 	}

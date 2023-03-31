@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-22 20:59:24
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 21:44:43
+ * @LastEditTime: 2023-03-28 16:37:24
  * @FilePath: /generateMPD/internal/worker/metaRepo/mongo.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -53,7 +53,7 @@ type VideoID struct {
 }
 
 // update video status to successed ,
-func (m mongolRepo) UpdateStateAndFileNames(ctx context.Context, mission worker.Mission, mpdFileName, pngFileName string) error {
+func (m mongolRepo) UpdateStateAndFileNames(ctx context.Context, mission worker.Mission, mpdFileName, pngFileName, duration string) error {
 
 	objectId, err := primitive.ObjectIDFromHex(mission.VideoId)
 	if err != nil {
@@ -61,20 +61,30 @@ func (m mongolRepo) UpdateStateAndFileNames(ctx context.Context, mission worker.
 		return InvalidID
 	}
 
-	res := m.db.Database(m.database).Collection(m.collection).FindOneAndUpdate(
-		ctx,
-		bson.D{
-			{Key: "_id", Value: objectId},
-			{Key: "userId", Value: mission.UserId},
-		},
-		bson.D{
-			{Key: "$set",
-				Value: bson.D{
-					{Key: "state", Value: UnPublish},
-					{Key: "mpd", Value: mpdFileName},
-					{Key: "png", Value: pngFileName},
+	filter := bson.D{
+		{Key: "_id", Value: objectId},
+		{Key: "userId", Value: mission.UserId},
+	}
+
+	update := bson.A{
+		bson.M{"$set": bson.M{
+			"png": bson.M{
+				"$cond": bson.A{
+					bson.M{"$exists": bson.M{"png": false}},
+					pngFileName,
+					"$png",
 				},
 			},
-		})
+			"mpd":      mpdFileName,
+			"duration": duration,
+		},
+		},
+	}
+
+	res := m.db.Database(m.database).Collection(m.collection).FindOneAndUpdate(
+		ctx,
+		filter,
+		update)
+
 	return res.Err()
 }

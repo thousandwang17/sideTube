@@ -1,0 +1,17 @@
+[
+    {
+        "create": "viewLogs"
+    },
+    {
+        "createIndexes": "viewLogs",
+        "indexes": [
+            {
+                "key": {
+                    "user_id": 1,
+                    "date": -1
+                },
+                "name": "user_video_view"
+            }
+        ]
+    }
+]

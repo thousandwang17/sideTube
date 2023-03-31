@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-31 15:46:39
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-01-30 17:35:11
+ * @LastEditTime: 2023-03-31 17:44:16
  * @FilePath: /ChannelStudio/internal/ChannelStudio/video.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -10,6 +10,8 @@ package ChannelStudio
 
 import (
 	"fmt"
+	"image"
+	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -25,12 +27,19 @@ type VideoEditMeta struct {
 	Id          string `json:"video_id" `
 	Title       string `json:"title,omitempty" bson:"title"`
 	Description string `json:"desc,omitempty" bson:"desc"`
+	Picture     io.ReadSeekCloser
+	Extension   string
+	Config      image.Config
 }
 
 type VideoMeta struct {
+	UserId      string             `json:"user_id" bson:"userId"`
+	UserName    string             `json:"user_name" bson:"userName"`
 	Id          string             `json:"video_id" `
 	Title       string             `json:"title,omitempty" bson:"title"`
 	Description string             `json:"desc,omitempty" bson:"desc"`
+	Duration    string             `json:"duration,omitempty" bson:"duration"`
+	Png         string             `json:"png,omitempty" bson:"png"`
 	Like        uint64             `json:"like,omitempty" bson:"like"`
 	DisLike     uint64             `json:"disLike,omitempty" bson:"disLike"`
 	Views       uint64             `json:"views,omitempty" bson:"views"`

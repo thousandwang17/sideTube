@@ -20,6 +20,9 @@ services:
       - ENCODE_VIDEO_QUEUE=encode_video
       - DECTED_VIDEO_EXCHANGE=dected_video_exchange
       - DECTED_VIDEO_QUEUE=dected_video
+      - ENCODE_AUDIO_EXCHANGE=encode_audio_exchange
+      - ENCODE_AUDIO_QUEUE=encode_audio
+      - ENCODE_VIDEO_SIZE=40000000000000  # a worker mechine can handel bit in 10 mins 4 x 10^13
       - REDIS_HOST=172.17.0.1
       - REDIS_PORT=6379
       - REDIS_PASSWORD=

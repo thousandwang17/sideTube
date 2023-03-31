@@ -18,6 +18,8 @@ services:
       - RABBIT_PORT=5672
       - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
       - GENERATE_MPD_QUEUE=generate_mpd
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
       - REDIS_HOST=172.17.0.1
       - REDIS_PORT=6379
       - REDIS_PASSWORD=

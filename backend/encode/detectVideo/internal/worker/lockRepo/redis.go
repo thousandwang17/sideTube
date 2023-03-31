@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-15 20:49:23
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-20 21:46:10
+ * @LastEditTime: 2023-03-01 20:10:31
  * @FilePath: /detectVideo/lockRepo/redis.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -12,6 +12,7 @@ import (
 	"context"
 	"detectVideo/internal/worker"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -42,11 +43,14 @@ func (r redisLocker) UnLock(ctx context.Context, videoID string) error {
 
 func (r redisLocker) SetMissionMap(ctx context.Context, videoID string, length int) error {
 
-	err := r.setBitsTo1(ctx, videoID+"_encode", length)
+	err := r.setBitsTo1(ctx,
+		fmt.Sprintf("%s_%s", videoID, "encode"),
+		fmt.Sprintf("%s_%s_%s", videoID, "encode", "current"),
+		length)
 	return err
 }
 
-func (r redisLocker) setBitsTo1(ctx context.Context, key string, end int) error {
+func (r redisLocker) setBitsTo1(ctx context.Context, key, key_current string, end int) error {
 
 	if end <= 0 {
 		return ErrMinSubmission
@@ -58,16 +62,18 @@ func (r redisLocker) setBitsTo1(ctx context.Context, key string, end int) error 
 
 	script := `
         local key = KEYS[1]
+        local key_current = KEYS[2]
    		local stop = tonumber(ARGV[1])
         
         for i=0,stop do
             redis.call('SETBIT', key, i, 1)
         end
-		redis.call('EXPIRE', 'key', 3600* 24 * 3 ) 
+		redis.call('EXPIRE', key, 3600* 24 * 3 ) 
+		redis.call('EXPIRE', key_current , 3600* 24 * 3 ) 
 
         return "OK"
     `
 	args := []interface{}{end}
-	_, err := r.client.Eval(ctx, script, []string{key}, args...).Result()
+	_, err := r.client.Eval(ctx, script, []string{key, key_current}, args...).Result()
 	return err
 }

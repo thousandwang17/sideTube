@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-04 17:36:26
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-15 12:47:11
+ * @LastEditTime: 2023-03-25 19:58:58
  * @FilePath: /videoUpload/internal/transport/http/http.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
 )
 
@@ -41,16 +42,19 @@ func startHttpServer() {
 		// videoRepository.NewS3(AWSsession),
 	)
 
+	vaild := validator.New()
+
 	// register apis
 	r := mux.NewRouter()
+	s := r.PathPrefix("/videoUpload").Subrouter()
 
-	r.Handle("/start", vts.StartUploadRegister(svc)).Methods("POST")
+	s.Handle("/start", vts.StartUploadRegister(svc, vaild)).Methods("POST")
 
-	r.Handle("/updatePart", vts.UploadPartRegister(svc)).Methods("POST")
+	s.Handle("/updatePart", vts.UploadPartRegister(svc, vaild)).Methods("POST")
 
-	r.Handle("/abort", vts.AbortUploadRegister(svc)).Methods("POST")
+	s.Handle("/abort", vts.AbortUploadRegister(svc, vaild)).Methods("POST")
 
-	r.Handle("/finish", vts.FinishUploadRegister(svc)).Methods("POST")
+	s.Handle("/finish", vts.FinishUploadRegister(svc, vaild)).Methods("POST")
 
 	// start Http server
 	srv := &http.Server{
@@ -93,7 +97,7 @@ func gracefullyShutDown(srv *http.Server) {
 
 func accessControl(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
+		w.Header().Set("Access-Control-Allow-Origin", os.Getenv("CROS_ALLOW_ORIGIN"))
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

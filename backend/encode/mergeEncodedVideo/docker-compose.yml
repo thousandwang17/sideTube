@@ -1,0 +1,36 @@
+version : '3'
+services:
+  filemerge:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: encodedFileMerge
+    restart: always
+    networks: 
+     - network_mongo
+    volumes:
+    - ../../../../tempVideo/:/var/videos/
+    environment:
+      - VIDEO_PATH=/var/videos/
+      - RABBIT_USER_NAME=guest
+      - RABBIT_USER_PASS=guest
+      - RABBIT_HOST=172.17.0.1
+      - RABBIT_PORT=5672
+      - MERGE_ENCODED_VIDEO_EXCHANGE=merge_encoded_video_exchange
+      - MERGE_ENCODED_VIDEO_QUEUE=merge_encoded_video
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - REDIS_HOST=172.17.0.1
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - NUMBER_OF_WORKER=1
+
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+
+
+

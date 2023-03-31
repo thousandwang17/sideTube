@@ -1,0 +1,46 @@
+version: "3"
+services:
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: toSearchEngine
+    restart: always
+    networks:
+      - network_mongo
+      - network_elastic
+
+    environment:
+      - RABBIT_USER_NAME=guest
+      - RABBIT_USER_PASS=guest
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_PORT=5672
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - MONGODB_USERNAME=root
+      - MONGODB_PASSWORD=root
+      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGO_DATABASE=video_meta
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - ELASTIC_HOST=172.17.0.1
+      - ELASTIC_PORT=9200
+      - ELASTIC_INDEX=videos
+      - NUMBER_OF_WORKER=1
+      - NUMBER_OF_WORKER_HANDLER=100
+
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+  network_elastic:
+    name: elastic
+    external: true
+    driver: bridge
+
+  
+

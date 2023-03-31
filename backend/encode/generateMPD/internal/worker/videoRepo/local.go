@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-15 16:29:37
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 20:52:26
+ * @LastEditTime: 2023-03-14 15:42:52
  * @FilePath: /encode/encodeVideo/handler.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -26,7 +26,7 @@ type local struct {
 var (
 	ErrDetct         = errors.New("ffprobe error")
 	ErrFileNotFound  = errors.New("file not found")
-	ErrFileFormat    = errors.New("ffprobe failed tp get video format")
+	ErrFileFormat    = errors.New("ffempg failed tp get video format")
 	ErrFormatMissing = errors.New("video or audio format missing")
 )
 
@@ -40,19 +40,31 @@ func NewLoacl(path string) worker.VideoRepository {
 	}
 }
 
-func (b local) GenerateMPD(c context.Context, videoID string, videoList, audioList []string) (mpdFileName, pngfileName string, err error) {
+func (b local) GenerateMPD(c context.Context, info worker.Mission, videoList, audioList []string) (mpdFileName, pngfileName, duration string, err error) {
+	log.Println("generateMPDfile")
 
-	mpdFileName, err = b.generateMPDfile(videoID, videoList, audioList)
+	mpdFileName, err = b.generateMPDfile(info.VideoId, videoList, audioList)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
+	log.Println("createPng")
 
-	pngfileName, err = b.createPng(videoID)
+	pngfileName, err = b.createPng(info.VideoId)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
+	log.Println("getVideoDuration")
 
-	return mpdFileName, pngfileName, nil
+	duration, err = b.getVideoDuration(info.VideoId)
+	if err != nil {
+		return "", "", "", err
+	}
+	log.Println("removeChunkVideo")
+
+	b.removeChunkVideo(c, info)
+	log.Println("down")
+
+	return mpdFileName, pngfileName, duration, nil
 }
 
 func (b local) generateMPDfile(videoID string, videoList, audioList []string) (fileName string, err error) {
@@ -102,13 +114,14 @@ func (b local) generateMPDfile(videoID string, videoList, audioList []string) (f
 	arg = append(arg, "-c", "copy")
 	arg = append(arg, copyMap...)
 	arg = append(arg, "-f", "webm_dash_manifest")
+	arg = append(arg, "-y")
 	arg = append(arg, "-adaptation_sets", adaptation_sets.String(), outputFile)
 
 	cmd := exec.Command("ffmpeg", arg...)
 
 	err = cmd.Run()
 	if err != nil {
-		log.Println("Error:", err)
+		log.Println("Error generate :", err, cmd.String())
 		return "", ErrFileFormat
 	}
 
@@ -135,18 +148,53 @@ func (b local) createPng(videoID string) (fileName string, err error) {
 		"-vframes", "1",
 		"-filter:v", "scale=854:-2",
 		"-q:v", "1",
+		"-y",
 		outputFile,
 	)
 
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error Png:", err)
 		return "", err
 	}
 
 	return fmt.Sprintf("%s_default.png", videoID), nil
 }
 
+func (b local) getVideoDuration(videoID string) (string, error) {
+
+	filePath := fmt.Sprintf("%s%s.mp4",
+		b.path,
+		videoID)
+
+	// command to get the duration of the video
+	cmd := exec.Command("ffprobe", "-i", filePath, "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0")
+
+	// run the command and capture the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Error Duration:", err)
+		return "", err
+	}
+
+	// parse the duration from the output
+	duration := strings.TrimSpace(string(output))
+
+	// print the duration
+	return duration, nil
+}
+
+func (b local) removeChunkVideo(c context.Context, info worker.Mission) {
+	for part_id := 0; part_id < info.TotalChunk; part_id++ {
+		if err := os.Remove(fmt.Sprintf("%s%s_%d.mp4",
+			b.path,
+			info.VideoId,
+			part_id,
+		)); err != nil {
+			log.Printf("%s part: %d , copy err %v ", info.VideoId, part_id, err)
+		}
+	}
+}
 func (b local) checkFileStat(pathTofile string) (bool, error) {
 	if _, err := os.Stat(pathTofile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {

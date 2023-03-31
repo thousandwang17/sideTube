@@ -153,6 +153,66 @@ func (client *RabbitClient) init(conn *amqp.Connection) error {
 	return nil
 }
 
+func encodeAudioRegister(ch *amqp.Channel) error {
+	queue := os.Getenv("ENCODE_AUDIO_QUEUE")
+	if queue == "" {
+		return errors.New(" encode queue name is empty")
+	}
+
+	exchange := os.Getenv("ENCODE_AUDIO_EXCHANGE")
+	if exchange == "" {
+		return errors.New("encode exchange name is empty")
+	}
+
+	q, err := ch.QueueDeclare(
+		queue,
+		true,
+		false,
+		false,
+		false,
+		map[string]interface{}{
+			// "x-dead-letter-exchange": "my-dlx",
+			// "x-dead-letter-routing-key": "my-dlq",
+			// "x-message-ttl": 60000,
+			"x-max-retries": 3,
+		})
+	if err != nil {
+		log.Println(err, "Failed to declare an encode queue")
+		return err
+	}
+
+	err = ch.ExchangeDeclare(
+		exchange,            // name
+		amqp.ExchangeDirect, // type
+		true,                // durable
+		false,               // auto-deleted
+		false,               // internal
+		false,               // no-wait
+		amqp.Table{
+			"x-delayed-type": "direct",
+		}, // arguments
+	)
+
+	if err != nil {
+		log.Println(err, "Failed to declare an encode exchange")
+		return err
+	}
+
+	err = ch.QueueBind(
+		q.Name,   // queue name
+		q.Name,   // routing key
+		exchange, // exchange
+		false,
+		nil,
+	)
+
+	if err != nil {
+		log.Println(err, "Failed to Bind queue and exchange")
+		return err
+	}
+	return nil
+}
+
 //
 func encodeVideoRegister(ch *amqp.Channel) error {
 	queue := os.Getenv("ENCODE_VIDEO_QUEUE")
@@ -295,27 +355,10 @@ func (client *RabbitClient) changeChannel(channel *amqp.Channel) {
 }
 
 // if message faild to handel because sill lock , call this funcion for retry laterly
-func (client *RabbitClient) PublishEncodeVideo(ctx context.Context, missions [][]byte) error {
-	if !client.isReady {
-		return errors.New("failed to push: not connected")
-	}
-
-	ch, err := client.connection.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
-	if err = encodeVideoRegister(ch); err != nil {
-		return errors.New("rabbiqmq channel Failed to Declare encodeVideo Queue")
-	}
-
-	if err = ch.Tx(); err != nil {
-		return errors.New("rabbiqmq channel Failed to start Tx")
-	}
+func (client *RabbitClient) publishEncodeVideo(ctx context.Context, ch *amqp.Channel, missions [][]byte) error {
 
 	for i := range missions {
-		err = ch.PublishWithContext(
+		err := ch.PublishWithContext(
 			ctx,
 			os.Getenv("ENCODE_VIDEO_EXCHANGE"), // exchange
 			os.Getenv("ENCODE_VIDEO_QUEUE"),    // routing key
@@ -334,11 +377,71 @@ func (client *RabbitClient) PublishEncodeVideo(ctx context.Context, missions [][
 		}
 	}
 
+	log.Printf("PublishEncodeVideo [x] Sent ")
+	return nil
+}
+
+func (client *RabbitClient) PublishEncode(ctx context.Context, videoMissions, audioMissions [][]byte) error {
+	if !client.isReady {
+		return errors.New("failed to push: not connected")
+	}
+
+	ch, err := client.connection.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
+	if err = encodeAudioRegister(ch); err != nil {
+		return errors.New("rabbiqmq channel Failed to Declare encodeAudio Queue")
+	}
+
+	if err = encodeVideoRegister(ch); err != nil {
+		return errors.New("rabbiqmq channel Failed to Declare encodeVideo Queue")
+	}
+
+	if err = ch.Tx(); err != nil {
+		return errors.New("rabbiqmq channel Failed to start Tx")
+	}
+
+	if err = client.publishEncodeVideo(ctx, ch, videoMissions); err != nil {
+		return errors.New("rabbiqmq channel Failed to publish EncodeVideo")
+	}
+
+	if err = client.publishEncodeAudio(ctx, ch, audioMissions); err != nil {
+		return errors.New("rabbiqmq channel Failed to publish EncodeAudio")
+	}
+
 	if err = ch.TxCommit(); err != nil {
 		return errors.New("Failed to commit transaction")
 	}
 
-	log.Printf("PublishEncodeVideo [x] Sent ")
+	return nil
+}
+
+func (client *RabbitClient) publishEncodeAudio(ctx context.Context, ch *amqp.Channel, missions [][]byte) error {
+
+	for i := range missions {
+		err := ch.PublishWithContext(
+			ctx,
+			os.Getenv("ENCODE_AUDIO_EXCHANGE"), // exchange
+			os.Getenv("ENCODE_AUDIO_QUEUE"),    // routing key
+			false,                              // mandatory
+			false,                              // immediate
+			amqp.Publishing{
+				ContentType: "application/json",
+				Body:        missions[i],
+			})
+
+		if err != nil {
+			if err := ch.TxRollback(); err != nil {
+				return errors.New("Failed to Rollback a message")
+			}
+			return errors.New("Failed to publish a message")
+		}
+	}
+
+	log.Printf("PublishencodeAudio [x] Sent ")
 	return nil
 }
 

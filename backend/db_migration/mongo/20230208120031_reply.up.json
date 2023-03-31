@@ -1,0 +1,17 @@
+[
+    {
+        "create": "Reply"
+    },
+    {
+        "createIndexes": "Reply",
+        "indexes": [
+            {
+                "key": {
+                    "createTime": -1,
+                    "messageId": -1
+                },
+                "name": "Time" 
+            }
+        ]
+    }
+]

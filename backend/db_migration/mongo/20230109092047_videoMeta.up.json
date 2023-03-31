@@ -1,0 +1,43 @@
+[
+    {
+        "create": "videoMeta"
+    },
+    {
+        "createIndexes": "videoMeta",
+        "indexes": [
+            {
+                "key": { "_id": "hashed" },
+                "name": "videoID" 
+            },
+            {
+                "key": {
+                    "createTime": -1 ,
+                    "userId" : 1
+                },
+                "name": "time" 
+            },
+            {
+                "key": {
+                    "expire" : 1
+                },
+                "name": "ttl",
+                "expireAfterSeconds": 604800 
+            },
+            {
+                "key": {
+                    "mpd": -1 ,
+                    "permission" : 1
+                },
+                "name": "recommend" 
+            },
+            {
+                "key": {
+                    "userId": 1,
+                    "mpd": -1 ,
+                    "permission" : 1
+                },
+                "name": "publicList" 
+            }
+        ]
+      }
+]

@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-02 19:32:41
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-01-22 17:42:22
+ * @LastEditTime: 2023-03-01 15:03:23
  * @FilePath: /videoUpload/internal/videoUpload/endpoint.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -23,7 +23,7 @@ func MakeStartUploadEndPoint(v service.VideoCommend) endpoint.EndPoint {
 }
 
 type StartUploadRequest struct {
-	TotalChunks int32 `json:"totalChunks" validate:"required,alphanum"`
+	TotalChunks int32 `json:"totalChunks" validate:"required,lte=1000"`
 }
 
 type StartUploadRespond struct {

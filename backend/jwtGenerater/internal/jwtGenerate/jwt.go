@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-31 15:46:39
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-24 17:09:24
+ * @LastEditTime: 2023-02-27 14:38:02
  * @FilePath: /jwtGenerate/internal/jwtGenerate/video.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -21,12 +21,6 @@ type AccessToken string
 // ApiToken is used for request server.
 // jwt Format
 type RefreshToken string
-
-// Login need to return both kind of token
-type LoginToken struct {
-	AT AccessToken
-	RT RefreshToken
-}
 
 type UserInfo struct {
 	UserId   string `json:"user_id" bson:"userId"`

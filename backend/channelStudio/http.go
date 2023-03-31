@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-04 17:36:26
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-01 13:53:19
+ * @LastEditTime: 2023-03-25 20:12:51
  * @FilePath: /ChannelStudio/internal/transport/http/http.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -15,10 +15,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sideTube/ChannelStudio/internal/ChannelStudio/fileRepository"
+	"sideTube/ChannelStudio/internal/ChannelStudio/messageQueue"
 	"sideTube/ChannelStudio/internal/ChannelStudio/metaRepository"
 	"sideTube/ChannelStudio/internal/ChannelStudio/service"
 	vts "sideTube/ChannelStudio/internal/ChannelStudio/transport/http"
 	"sideTube/ChannelStudio/internal/common/mongodb"
+	"sideTube/ChannelStudio/internal/common/rabbitmq"
 	"syscall"
 	"time"
 
@@ -27,22 +30,27 @@ import (
 )
 
 func startHttpServer() {
+	rabbit := rabbitmq.GetRabbitClient()
 
 	mongoDB := mongodb.GetMongoClient()
 	// invoke video-upload service
 	svc := service.NewVideoStudioCommend(
 		metaRepository.NewMongoRepo(mongoDB),
+		messageQueue.NewMessageRepo(rabbit),
+		fileRepository.NewLoacl(os.Getenv("VIDEO_PATH")),
 	)
 
 	// register apis
 	r := mux.NewRouter()
+	sv := r.PathPrefix("/studio/video").Subrouter()
 
 	// register validator
 	validate := validator.New()
 
-	r.Handle("/studio/video/setInfo", vts.EditVideoMetaRegister(svc, validate)).Methods("POST")
-	r.Handle("/studio/video/setState", vts.EditVideoPublicStateRegister(svc, validate)).Methods("POST")
-	r.Handle("/studio/videos", vts.GetVideoListRegister(svc, validate)).Methods("POST")
+	sv.Handle("/setInfo", vts.EditVideoMetaRegister(svc, validate)).Methods("POST")
+	sv.Handle("/setState", vts.EditVideoPublicStateRegister(svc, validate)).Methods("POST")
+	sv.Handle("/list", vts.GetVideoListRegister(svc, validate)).Methods("POST")
+	sv.Handle("/publicList", vts.GetPublicVideoListRegister(svc, validate)).Methods("POST")
 
 	// start Http server
 	srv := &http.Server{

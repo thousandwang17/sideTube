@@ -1,0 +1,26 @@
+version : '3'
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: picture
+    restart: always
+    networks: 
+     - network_mongo
+    volumes:
+    - ../../../tempVideo/:/var/videos/
+    ports:
+      - "3009:80"
+    environment:
+      - HTTP_ADDRESS=0.0.0.0
+      - HTTP_PORT=80
+      - CROS_ALLOW_ORIGIN=http://localhost:3000
+      - VIDEO_PATH=/var/videos/
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+
+
+

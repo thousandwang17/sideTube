@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-30 15:43:56
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-24 13:55:15
+ * @LastEditTime: 2023-03-12 16:28:08
  * @FilePath: /videoUpload/internal/videoUpload/videoRepository/local.go
  * @Description: this repo just for local test
  */
@@ -29,7 +29,7 @@ var (
 	ErrFileTypeRequest         = errors.New("only can request .mpd file")
 )
 
-const VIDEO_MAX_BUFFER_SIZE = 1024 * 1024 * 3 //3MB
+const VIDEO_MAX_BUFFER_SIZE = 1024 * 1024 * 5 //3MB
 const AUDIO_MAX_BUFFER_SIZE = 1024 * 1024     //1MB
 
 type loaclS3 struct {

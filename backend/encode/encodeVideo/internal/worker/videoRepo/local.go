@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-15 16:29:37
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 14:18:30
+ * @LastEditTime: 2023-03-21 15:29:03
  * @FilePath: /encode/encodeVideo/handler.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -11,7 +11,6 @@ package videoRepo
 import (
 	"context"
 	"encodeVideo/internal/worker"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -24,21 +23,15 @@ type local struct {
 }
 
 var (
-	ErrDetct        = errors.New("ffprobe error")
-	ErrFileNotFound = errors.New("file not found")
-	ErrFileFormat   = errors.New("ffempg failed tp get video format")
-	ErrEncode       = errors.New("ffempg failed to encode")
-	ErrVideoFormat  = errors.New("video format not reach min requirement")
-	ErrAudioFormat  = errors.New("audio format not reach min requirement")
+	ErrDetct              = errors.New("ffprobe error")
+	ErrFileNotFound       = errors.New("file not found")
+	ErrFileFormat         = errors.New("ffempg failed tp get video format")
+	ErrEncode             = errors.New("ffempg failed to encode")
+	ErrVideoFormat        = errors.New("video format not reach min requirement")
+	ErrVideoMissionFormat = errors.New("Mission is not video type ")
 )
 
 var (
-	audioFormats = map[int]string{
-		44100:  "44k",
-		96000:  "96k",
-		192000: "192k",
-	}
-
 	VideoFormat = map[int]struct{}{
 		480:  struct{}{},
 		720:  struct{}{},
@@ -51,14 +44,6 @@ var (
 		60:    60,
 	}
 )
-
-type AudioStream struct {
-	Streams []struct {
-		CodecName  string `json:"codec_name"`
-		SampleFmt  string `json:"sample_fmt"`
-		SampleRate string `json:"sample_rate"`
-	} `json:"streams"`
-}
 
 type VideoStream struct {
 	Streams []struct {
@@ -81,63 +66,50 @@ func NewLoacl(path string) worker.VideoRepository {
 
 func (b local) EncodeVideo(c context.Context, mission worker.EncodeVideoMission) (outputFile string, err error) {
 
-	videofile := fmt.Sprintf("%s%s.mp4", b.path, mission.VideoId)
+	videofile := fmt.Sprintf("%s%s_%d.mp4", b.path, mission.VideoId, mission.SubMissionID)
 	if exist, err := b.checkFileStat(videofile); !exist || err != nil {
 		return "", ErrFileNotFound
 	}
 
-	if mission.VideoFormat.Height > 0 {
-		outputFile, err = b.encodeVideoStream(videofile, mission)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		outputFile, err = b.encodeAudioStream(videofile, mission)
-		if err != nil {
-			return "", err
-		}
+	outputFile, err = b.encodeVideoStream(mission.VideoId, mission)
+	if err != nil {
+		return "", err
 	}
+
 	return outputFile, nil
 }
 
 //todo dected file alerdy encode by ffprobe
-func (b local) encodeVideoStream(inputFile string, format worker.EncodeVideoMission) (outputFile string, err error) {
+func (b local) encodeVideoStream(VideoId string, format worker.EncodeVideoMission) (outputFile string, err error) {
 
-	fps, ok := VideoFPSFormat[format.VideoFormat.Fps]
-	if !ok {
-		log.Println("FPS Format wrong", format.VideoFormat.Fps)
-		return "", ErrVideoFormat
-	}
-
-	_, ok = VideoFormat[format.VideoFormat.Height]
+	_, ok := VideoFormat[format.VideoFormat.Height]
 	if !ok {
 		log.Println("Height Format wrong", format.VideoFormat.Height)
 		return "", ErrVideoFormat
 	}
 
-	outputFile = fmt.Sprintf("%s%s.%d.%v.webm",
+	outputFile = fmt.Sprintf("%s%s_%d.%d.%v.webm",
 		b.path,
 		format.VideoId,
+		format.SubMissionID,
 		format.VideoFormat.Height,
-		fps)
+		format.VideoFormat.Fps,
+	)
 
-	// Run ffprobe tey  to get video information , if can get message that mean video already encode
-	cmd := exec.Command("ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v:0", outputFile)
-	if out, err := cmd.Output(); err == nil {
-		var ffprobeOutput VideoStream
-		err = json.Unmarshal(out, &ffprobeOutput)
-		if err != nil && len(ffprobeOutput.Streams) > 0 {
-			return outputFile, nil
-		}
+	vf := fmt.Sprintf("scale=-2:%d,format=yuv420p,fps=fps=%v", format.VideoFormat.Height, format.VideoFormat.Fps)
+	if format.VideoFormat.OriginFps {
+		vf = fmt.Sprintf("scale=-2:%d,format=yuv420p", format.VideoFormat.Height)
 	}
 
 	// FFmpeg command to convert the file
+	inputFileName := fmt.Sprintf("%s_%d.mp4", VideoId, format.SubMissionID)
+	inputFile := b.videoPath(inputFileName)
 	// First pass
-	cmd = exec.Command(
+	cmd := exec.Command(
 		"ffmpeg",
 		"-i", inputFile,
 		"-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "30",
-		"-vf", fmt.Sprintf("scale=-2:%d,fps=fps=%v", format.VideoFormat.Height, format.VideoFormat.Fps),
+		"-vf", vf,
 		"-tile-columns", "4", "-frame-parallel", "1",
 		"-pass", "1",
 		"-an", "-f", "null",
@@ -149,14 +121,14 @@ func (b local) encodeVideoStream(inputFile string, format worker.EncodeVideoMiss
 		log.Println(format.VideoId, format.MissionID, err, cmd.String())
 		return "", ErrEncode
 	}
-	log.Println(format.VideoId, format.MissionID, "pass 1 end")
+	log.Println(format.VideoId, format.MissionID, " 2 pass 1 end")
 
 	// Second pass
 	cmd = exec.Command(
 		"ffmpeg",
 		"-i", inputFile,
 		"-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "30",
-		"-vf", fmt.Sprintf("scale=-2:%d,fps=fps=%v", format.VideoFormat.Height, format.VideoFormat.Fps),
+		"-vf", vf,
 		"-tile-columns", "4", "-frame-parallel", "1",
 		"-pass", "2",
 		"-an",
@@ -168,49 +140,10 @@ func (b local) encodeVideoStream(inputFile string, format worker.EncodeVideoMiss
 		log.Println(format.VideoId, format.MissionID, err)
 		return "", ErrEncode
 	}
+	log.Println(format.VideoId, format.MissionID, " 2 pass 2 end")
 
 	return outputFile, nil
 
-}
-
-func (b local) encodeAudioStream(inputFile string, format worker.EncodeVideoMission) (outputFile string, err error) {
-	outputFile = fmt.Sprintf("%s%s.%d.webm",
-		b.path,
-		format.VideoId,
-		format.AudioFormat.Hz)
-
-	// Run ffprobe to get video information , if can get message that mean video already encode
-	cmd := exec.Command("ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a:0", outputFile)
-	if out, err := cmd.Output(); err == nil {
-		var ffprobeOutput VideoStream
-		err = json.Unmarshal(out, &ffprobeOutput)
-		if err != nil && len(ffprobeOutput.Streams) > 0 {
-			return outputFile, nil
-		}
-	}
-
-	bitrate, ok := audioFormats[format.AudioFormat.Hz]
-	if !ok {
-		return "", ErrAudioFormat
-	}
-
-	cmd = exec.Command(
-		"ffmpeg",
-		"-i", inputFile,
-		"-c:a", "libopus",
-		"-b:a", bitrate,
-		"-vn",
-		"-f", "webm",
-		"-dash", "1",
-		"-y",
-		outputFile,
-	)
-	if err := cmd.Run(); err != nil {
-		log.Println(format.VideoId, format.MissionID, err, cmd.String())
-		return "", ErrEncode
-	}
-
-	return outputFile, nil
 }
 
 func (b local) checkFileStat(pathTofile string) (bool, error) {
@@ -221,4 +154,8 @@ func (b local) checkFileStat(pathTofile string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (b local) videoPath(fileName string) string {
+	return fmt.Sprintf("%s%s", b.path, fileName)
 }

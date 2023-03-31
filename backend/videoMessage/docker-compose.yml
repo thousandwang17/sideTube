@@ -24,7 +24,7 @@ services:
       - MONGO_Reply_COLLECTION=Reply
       - JWT_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
       - JWT_HEADER_ALG=HS256
-      - CROS_ALLOW_ORIGIN=http://127.0.0.1:3000
+      - CROS_ALLOW_ORIGIN=http://localhost:3000
       - VIDEO_PATH=/var/videos/
 
 networks:

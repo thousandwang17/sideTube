@@ -1,4 +1,4 @@
-version : '3'
+version: "3"
 services:
   app:
     build:
@@ -6,29 +6,26 @@ services:
       dockerfile: Dockerfile
     container_name: jwtGenerate
     restart: always
-    networks: 
-     - network_mongo
+    networks:
+      - network_mongo
     volumes:
-    - ../../../tempVideo/:/var/videos/
+      - ../../../tempVideo/:/var/videos/
     ports:
       - "3005:80"
+      - "3006:81"
     environment:
       - HTTP_ADDRESS=0.0.0.0
+      - GRPC_ADDRESS=0.0.0.0
       - HTTP_PORT=80
-      - MONGODB_USERNAME=root
-      - MONGODB_PASSWORD=root
-      - MONGODB_HOST=mongodb://172.17.0.1:27017/
-      - MONGO_DATABASE=video_meta
-      - MONGO_USER_COLLECTION=user
+      - GRPC_PORT=81
       - JWT_ACCESS_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
       - JWT_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
       - JWT_HEADER_ALG=HS256
-      - CROS_ALLOW_ORIGIN=http://127.0.0.1:3000
+      - JWT_ACCESS_HEADER_ALG=HS256
+      - CROS_ALLOW_ORIGIN=http://localhost:3000
+      - DEVELOPMENT=test
 
 networks:
   network_mongo:
     name: mongo_default
     external: true
-
-
-

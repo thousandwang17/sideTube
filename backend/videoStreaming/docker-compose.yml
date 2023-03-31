@@ -19,10 +19,11 @@ services:
       - MONGODB_PASSWORD=root
       - MONGODB_HOST=mongodb://172.17.0.1:27017/
       - MONGO_DATABASE=video_meta
-      - MONGO_COLLECTION=videoMeta
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_VIEW_LOGS_COLLECTION=viewLogs
       - JWT_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
       - JWT_HEADER_ALG=HS256
-      - CROS_ALLOW_ORIGIN=http://127.0.0.1:3000
+      - CROS_ALLOW_ORIGIN=http://localhost:3000
       - VIDEO_PATH=/var/videos/
 
 networks:

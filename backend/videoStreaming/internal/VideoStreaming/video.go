@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-31 15:46:39
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-23 13:01:40
+ * @LastEditTime: 2023-03-03 21:16:13
  * @FilePath: /VideoStreaming/internal/VideoStreaming/video.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -24,6 +24,8 @@ const (
 )
 
 type VideoMeta struct {
+	UserId      string          `json:"user_id" bson:"userId"`
+	UserName    string          `json:"user_name" bson:"userName"`
 	Title       string          `json:"title,omitempty" bson:"title"`
 	Description string          `json:"desc,omitempty" bson:"desc"`
 	Like        uint64          `json:"like,omitempty" bson:"like"`
@@ -33,7 +35,7 @@ type VideoMeta struct {
 	UpdateTime  VideoUpdateTime `json:"uploadTime" bson:"uploadTime"`
 
 	// video source list and info
-	Duration     uint64      `json:"Duration,omitempty" bson:"duration"`
+	// Duration     string      `json:"Duration,omitempty" bson:"duration"`
 	VideoSources []VideoType `json:"videoSources,omitempty" bson:"videoSources"`
 	AudioSources []AudioType `json:"audioSources,omitempty" bson:"audioSources"`
 	Mpd          string      `json:"mpd,omitempty" bson:"mpd"`

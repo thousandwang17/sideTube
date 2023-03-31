@@ -1,0 +1,363 @@
+version : '3'
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    networks:
+      - network_mongo
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+
+  video_upload:
+    build:
+      context: ./videoUpload
+      dockerfile: Dockerfile
+    container_name: videoUpload
+    restart: always
+    networks: 
+      - network_mongo
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    ports:
+      - "3001:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/rabbit.env
+      - ./.env/mongo.env
+      - ./.env/video.env
+    environment:
+      - MONGO_COLLECTION=videoMeta
+      - MERGE_VIDEO_EXCHANGE=merge_video_exchange
+      - MERGE_VIDEO_QUEUE=merge_video
+
+  channelstudio:
+    build:
+      context: ./channelStudio
+      dockerfile: Dockerfile
+    container_name: channelStudio
+    restart: always
+    networks: 
+      - network_mongo
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    ports:
+      - "3002:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/rabbit.env
+      - ./.env/mongo.env
+      - ./.env/video.env
+    environment:
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_CHANNEL_VIDEO_COUNT_COLLECTION=channelVideoCount
+
+  video_streaming:
+    build:
+      context: ./videoStreaming
+      dockerfile: Dockerfile
+    container_name: videoStreaming
+    restart: always
+    networks: 
+      - network_mongo
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    ports:
+      - "3003:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/mongo.env
+      - ./.env/video.env
+    environment:
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_VIEW_LOGS_COLLECTION=viewLogs
+
+  video_message:
+    build:
+      context: ./videoMessage
+      dockerfile: Dockerfile
+    container_name: videoMessage
+    restart: always
+    networks: 
+      - network_mongo
+    ports:
+      - "3004:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/mongo.env
+    environment:
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_MESSAGE_COLLECTION=message
+      - MONGO_Reply_COLLECTION=Reply
+
+  jwt_generater:
+    build:
+      context: ./jwtGenerater
+      dockerfile:  Dockerfile
+    container_name: jwtGenerater
+    restart: always
+    networks: 
+      - network_mongo
+    ports:
+      - "3005:80"
+      - "3006:81"
+    env_file:
+      - ./.env/http.env
+      - ./.env/grpc.env
+    environment:
+      - JWT_ACCESS_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
+      - JWT_ACCESS_HEADER_ALG=HS256
+
+  users:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    container_name: users
+    restart: always
+    networks: 
+      - network_mongo
+    ports:
+      - "3007:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/mongo.env
+    environment:
+      - MONGO_USER_COLLECTION=user
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_HISTORY_COLLECTION=viewLogs
+      - GRPC_ADDRESS=172.17.0.1
+      - GRPC_PORT=3006
+      - JWT_ACCESS_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
+  
+  fake_recommend:
+    build:
+      context: ./fakeRecommend
+      dockerfile: Dockerfile
+    container_name: fake_recommend
+    restart: always
+    networks: 
+      - network_mongo
+    ports:
+      - "3008:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/mongo.env
+    environment:
+      - MONGO_COLLECTION=videoMeta
+
+
+  picture:
+    build:
+      context: ./picture
+      dockerfile: Dockerfile
+    container_name: picture
+    restart: always
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    networks: 
+      - network_mongo
+    ports:
+      - "3009:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/video.env
+
+  search:
+    build:
+      context: ./search
+      dockerfile: Dockerfile
+    container_name: search
+    restart: always
+    networks: 
+      - network_mongo
+      - network_elastic
+    ports:
+      - "3010:80"
+    env_file:
+      - ./.env/http.env
+      - ./.env/mongo.env
+      - ./.env/elastic.env
+    environment:
+      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGO_VIDEO_COLLECTION=videoMeta
+
+
+
+ ## encode part  ##
+
+  merge_uploadfile:
+    build:
+      context: ./encode/mergeUploadfile
+      dockerfile: Dockerfile
+    container_name: mergeUploadfile
+    restart: always
+    networks: 
+      - network_mongo
+    env_file:
+      - ./.env/rabbit.env
+      - ./.env/redis.env
+      - ./.env/video.env
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - MERGE_VIDEO_EXCHANGE=merge_video_exchange
+      - MERGE_VIDEO_QUEUE=merge_video
+      - DECTED_VIDEO_EXCHANGE=dected_video_exchange
+      - DECTED_VIDEO_QUEUE=dected_video
+
+  detect_video:
+      build:
+        context: ./encode/detectVideo
+        dockerfile: Dockerfile
+      container_name: detectVideo
+      restart: always
+      networks: 
+        - network_mongo
+      env_file:
+        - ./.env/rabbit.env
+        - ./.env/redis.env
+        - ./.env/video.env
+      volumes:
+        - ../../tempVideo/:/var/videos/
+      environment:
+        - NUMBER_OF_WORKER=1 # in a machine
+        - ENCODE_VIDEO_EXCHANGE=encode_video_exchange
+        - ENCODE_VIDEO_QUEUE=encode_video
+        - DECTED_VIDEO_EXCHANGE=dected_video_exchange
+        - DECTED_VIDEO_QUEUE=dected_video
+        - ENCODE_AUDIO_EXCHANGE=encode_audio_exchange
+        - ENCODE_AUDIO_QUEUE=encode_audio
+        - ENCODE_VIDEO_SIZE=40000000000000  # a worker mechine can handel bit in 10 mins 4 x 10^13
+
+  encode_video:
+      build:
+        context: ./encode/encodeVideo
+        dockerfile: Dockerfile
+      container_name: encodeVideo
+      restart: always
+      networks: 
+        - network_mongo
+      env_file:
+        - ./.env/rabbit.env
+        - ./.env/redis.env
+        - ./.env/video.env
+      volumes:
+        - ../../tempVideo/:/var/videos/
+      environment:
+        - NUMBER_OF_WORKER=1 # in a machine
+        - ENCODE_VIDEO_EXCHANGE=encode_video_exchange
+        - ENCODE_VIDEO_QUEUE=encode_video
+        - MERGE_ENCODED_VIDEO_EXCHANGE=merge_encoded_video_exchange
+        - MERGE_ENCODED_VIDEO_QUEUE=merge_encoded_video
+
+  merge_encoded_video:
+    build:
+      context: ./encode/mergeEncodedVideo
+      dockerfile: Dockerfile
+    container_name: mergeEncodedVideo
+    restart: always
+    networks: 
+      - network_mongo
+    env_file:
+      - ./.env/rabbit.env
+      - ./.env/redis.env
+      - ./.env/video.env
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - MERGE_ENCODED_VIDEO_EXCHANGE=merge_encoded_video_exchange
+      - MERGE_ENCODED_VIDEO_QUEUE=merge_encoded_video
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+
+  encode_audio:
+    build:
+      context: ./encode/encodeAudio
+      dockerfile: Dockerfile
+    container_name: encodeAudio
+    restart: always
+    networks: 
+      - network_mongo
+    env_file:
+      - ./.env/rabbit.env
+      - ./.env/redis.env
+      - ./.env/video.env
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - ENCODE_AUDIO_EXCHANGE=encode_audio_exchange
+      - ENCODE_AUDIO_QUEUE=encode_audio
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+
+  generate_mpd:
+    build:
+      context: ./encode/generateMPD
+      dockerfile: Dockerfile
+    container_name: generateMPD
+    restart: always
+    networks: 
+      - network_mongo
+    env_file:
+      - ./.env/rabbit.env
+      - ./.env/redis.env
+      - ./.env/video.env
+      - ./.env/mongo.env
+
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_COLLECTION=videoMeta
+
+  insert_to_search_engine:
+    build:
+      context: ./encode/insertToSearchEngine
+      dockerfile: Dockerfile
+    container_name: toSearchEngine
+    restart: always
+    networks: 
+      - network_mongo
+      - network_elastic
+    env_file:
+      - ./.env/rabbit.env
+      - ./.env/redis.env
+      - ./.env/video.env
+      - ./.env/mongo.env
+      - ./.env/elastic.env
+    volumes:
+      - ../../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - NUMBER_OF_WORKER_HANDLER=100 # pre thread
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGODB_HOST=mongodb://mongo:27017/
+      - RABBIT_HOST=rabbitmq
+
+
+networks:
+  network_mongo:
+    name: mongo_default
+    external: true
+  network_elastic:
+    name: elastic
+    external: true
+    driver: bridge
+
+
+

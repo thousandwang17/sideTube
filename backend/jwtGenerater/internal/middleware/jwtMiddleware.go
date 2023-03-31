@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-04 16:46:31
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-24 17:42:34
+ * @LastEditTime: 2023-03-07 15:58:24
  * @FilePath: /jwtGenerate/internal/middleware/jwtMiddleware.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -18,7 +18,10 @@ import (
 	"sideTube/jwtGenerate/internal/common/simpleKit/endpoint"
 	httptransport "sideTube/jwtGenerate/internal/common/simpleKit/httpTransport"
 
+	grpctransport "github.com/go-kit/kit/transport/grpc"
+
 	"github.com/golang-jwt/jwt"
+	"google.golang.org/grpc/metadata"
 )
 
 type jWTerror struct{}
@@ -38,8 +41,22 @@ func (_ jWTerror) Error() string {
 
 func JwtServerBerore() httptransport.ServerBefore {
 	return func(ctx context.Context, r *http.Request) context.Context {
-		cookie, _ := r.Cookie("AccessToken")
+		cookie, err := r.Cookie("AccessToken")
+		if err != nil {
+			return ctx
+		}
 		ctx = context.WithValue(ctx, "AccessToken", cookie.Value)
+		return ctx
+	}
+}
+
+func GJwtServerBerore() grpctransport.ServerRequestFunc {
+	return func(ctx context.Context, md metadata.MD) context.Context {
+		accessToken := ""
+		if values := md.Get("AccessToken"); len(values) > 0 {
+			accessToken = values[0]
+		}
+		ctx = context.WithValue(ctx, "AccessToken", accessToken)
 		return ctx
 	}
 }
@@ -48,7 +65,7 @@ func JwtMiddleWare() endpoint.MiddleWare {
 	return func(next endpoint.EndPoint) endpoint.EndPoint {
 		return func(ctx context.Context, request interface{}) (interface{}, error) {
 
-			alg := os.Getenv("JWT_HEADER_ALG")
+			alg := os.Getenv("JWT_ACCESS_HEADER_ALG")
 			jwt_secret_key := os.Getenv("JWT_ACCESS_SECRET_KEY")
 
 			if alg == "" || jwt_secret_key == "" {
@@ -57,7 +74,7 @@ func JwtMiddleWare() endpoint.MiddleWare {
 			}
 
 			if ctx.Value("AccessToken") == nil {
-				return nil, ErrMissToken
+				return nil, jWTerror{}
 			}
 
 			// Parse takes the token string and a function for looking up the key. The latter is especially
@@ -70,11 +87,11 @@ func JwtMiddleWare() endpoint.MiddleWare {
 					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 				}
 
-				if token.Header["alg"] != os.Getenv("JWT_HEADER_ALG") {
+				if token.Header["alg"] != os.Getenv("JWT_ACCESS_HEADER_ALG") {
 					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 				}
 
-				return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+				return []byte(os.Getenv("JWT_ACCESS_SECRET_KEY")), nil
 			})
 
 			if err != nil {

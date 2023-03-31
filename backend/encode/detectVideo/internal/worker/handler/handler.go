@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-16 12:09:49
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-21 23:54:20
+ * @LastEditTime: 2023-03-13 14:39:38
  * @FilePath: /detectVideo/internal/worker/handler/handler.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -26,7 +27,7 @@ const (
 	Handling
 	Closed
 
-	TimeOut = time.Second * 30
+	TimeOut = time.Second * 60 * 5
 	delay   = 1000 * 30 // 30s
 )
 
@@ -81,9 +82,11 @@ L:
 			} else {
 				break L
 			}
+
 		case <-h.notifyClose:
 			break L
 		}
+
 	}
 
 	down := make(chan struct{})
@@ -98,6 +101,14 @@ L:
 	select {
 	case <-down:
 		log.Println("mission done")
+		select {
+		case _, _ = <-h.notifyClose:
+			// will keep go on and  shut down the server
+		default:
+			// if rabbitmq connect closed, it will get there.
+			os.Exit(0)
+			return
+		}
 	case <-ctx.Done():
 		log.Println("Warring : context timeout ")
 	}
@@ -160,8 +171,9 @@ func (h *handle) helper(d amqp091.Delivery) {
 	missionID := 0
 
 	// trasnform each support format to next encoding mission
-	var decodeVideoMissions [][]byte
-	if vs, as, err := h.videoRepo.DetectVideo(ctx, mission.VideoId); err != nil {
+	var encodeVideoMissions [][]byte
+	var encodeAudioMissions [][]byte
+	if vs, as, vtc, err := h.videoRepo.DetectVideo(ctx, mission.VideoId); err != nil {
 		log.Print(err)
 		if err := h.queueRepo.ReQueue(ctx, b, delay); err != nil {
 			log.Println("ReQueue", err)
@@ -171,32 +183,41 @@ func (h *handle) helper(d amqp091.Delivery) {
 		AckTrue(d)
 		return
 	} else {
-		decodeVideoMissions = make([][]byte, 0, len(vs)+len(as))
+		log.Println(len(vs), vtc)
+		encodeVideoMissions = make([][]byte, 0, len(vs)*vtc)
 
 		// videos missions
 		for v := range vs {
 			// encode
-			missionByte, err := json.Marshal(worker.EncodeVideoMission{
-				UserId:      mission.UserId,
-				VideoId:     mission.VideoId,
-				Time:        time.Now(),
-				VideoFormat: vs[v],
-				MissionID:   missionID,
-			})
 
-			if err != nil {
-				log.Println("json transform failed ", mission, err)
-				d.Nack(false, false)
-				return
+			for chunckNum := 0; chunckNum < vtc; chunckNum++ {
+				missionByte, err := json.Marshal(worker.EncodeVideoMission{
+					UserId:       mission.UserId,
+					VideoId:      mission.VideoId,
+					Time:         time.Now(),
+					VideoFormat:  vs[v],
+					MissionID:    missionID,
+					SubMissionID: chunckNum,
+					TotalChunk:   vtc,
+					MissionType:  worker.VideoType,
+				})
+
+				if err != nil {
+					log.Println("json transform failed ", mission, err)
+					d.Nack(false, false)
+					return
+				}
+
+				encodeVideoMissions = append(encodeVideoMissions,
+					missionByte,
+				)
+				log.Printf("%s-%d %d => %v", mission.VideoId, missionID, chunckNum, vs[v])
 			}
 
-			decodeVideoMissions = append(decodeVideoMissions,
-				missionByte,
-			)
-
-			log.Printf("%s %d => %v", mission.VideoId, missionID, vs[v])
 			missionID++
 		}
+
+		encodeAudioMissions = make([][]byte, 0, len(as))
 
 		// aduio missions
 		for a := range as {
@@ -207,6 +228,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 				Time:        time.Now(),
 				AudioFormat: as[a],
 				MissionID:   missionID,
+				MissionType: worker.AudioType,
 			})
 
 			if err != nil {
@@ -215,7 +237,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 				return
 			}
 
-			decodeVideoMissions = append(decodeVideoMissions,
+			encodeAudioMissions = append(encodeAudioMissions,
 				missionByte,
 			)
 
@@ -235,7 +257,7 @@ func (h *handle) helper(d amqp091.Delivery) {
 	}
 
 	// publish encoding mission
-	if err = h.queueRepo.PublishEncodeVideo(ctx, decodeVideoMissions); err != nil {
+	if err = h.queueRepo.PublishEncode(ctx, encodeVideoMissions, encodeAudioMissions); err != nil {
 		log.Print(err)
 		if err := h.queueRepo.ReQueue(ctx, b, delay); err != nil {
 			// if err, let message retry

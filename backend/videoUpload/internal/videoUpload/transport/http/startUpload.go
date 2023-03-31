@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-05 16:19:49
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-01-22 18:05:35
+ * @LastEditTime: 2023-02-26 18:26:08
  * @FilePath: /videoUpload/internal/transport/http/startUpload.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -17,11 +17,14 @@ import (
 	"sideTube/videoUpload/internal/middleware"
 	videoEnpoint "sideTube/videoUpload/internal/videoUpload/endpoint"
 	"sideTube/videoUpload/internal/videoUpload/service"
+
+	"github.com/go-playground/validator"
 )
 
-func StartUploadRegister(svc service.VideoCommend) *httptransport.HttpTransport {
+func StartUploadRegister(svc service.VideoCommend, v *validator.Validate) *httptransport.HttpTransport {
 	var ep endpoint.EndPoint
 	ep = videoEnpoint.MakeStartUploadEndPoint(svc)
+	ep = middleware.ValidMiddleWare(v)(ep)
 	ep = middleware.JwtMiddleWare()(ep)
 
 	return httptransport.NewHttpTransport(

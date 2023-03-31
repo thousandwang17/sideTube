@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-15 20:49:23
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 14:27:03
+ * @LastEditTime: 2023-03-11 19:41:36
  * @FilePath: /encodeVideo/lockRepo/redis.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -32,50 +32,50 @@ func NewRedis(c *redis.Client) worker.LockSystem {
 }
 
 // lock and check the mission have been encoded
-func (r redisLocker) Lock(ctx context.Context, videoID string, missionID int, ttl time.Duration) (done bool, err error) {
+func (r redisLocker) Lock(ctx context.Context, videoID string, missionID, subMissionID int, ttl time.Duration) (done bool, err error) {
 	return r.lock(ctx,
-		fmt.Sprintf("%s_%d_%s", videoID, missionID, "encode"),
-		fmt.Sprintf("%s_%d_%s", videoID, missionID, "encode"),
+		r.lockKey(videoID, missionID, subMissionID),
+		r.lockKey(videoID, missionID, subMissionID),
 		missionID,
 		ttl)
 }
 
-func (r redisLocker) UnLock(ctx context.Context, videoID string, missionID int) error {
-	res := r.client.Del(ctx, fmt.Sprintf("%s_%d_%s", videoID, missionID, "encode"))
+func (r redisLocker) UnLock(ctx context.Context, videoID string, missionID, subMissionID int) error {
+	res := r.client.Del(ctx, r.lockKey(videoID, missionID, subMissionID))
 	return res.Err()
 }
 
-func (r redisLocker) AccomplishbMission(ctx context.Context, mission worker.EncodeVideoMission, encodedFileName string) (alldone bool, err error) {
-
+func (r redisLocker) AccomplishbSubMission(ctx context.Context, mission worker.EncodeVideoMission, encodedFileName string) (alldone bool, err error) {
 	return r.setBitsTo1(ctx,
-		fmt.Sprintf("%s_%s", mission.VideoId, "encode"),
-		fmt.Sprintf("%s_%s_%s", mission.VideoId, "encode", "current"),
-		fmt.Sprintf("%s_%s", mission.VideoId, "list"),
 		mission,
 		encodedFileName,
 	)
 }
 
 // use bitmap to recode each mission state , 1 = been encoded
-func (r redisLocker) setBitsTo1(ctx context.Context, target_key, current_key, list_key string, mission worker.EncodeVideoMission, encodedFileName string) (alldone bool, err error) {
+func (r redisLocker) setBitsTo1(ctx context.Context, mission worker.EncodeVideoMission, encodedFileName string) (alldone bool, err error) {
 
-	if mission.MissionID < 0 || mission.MissionID > 100 {
+	if mission.SubMissionID < 0 || mission.SubMissionID > 100 {
 		return false, ErrMissionIndex
 	}
 
 	script := `
 		local target_key = KEYS[1]
 		local current_key = KEYS[2]
-		local list_key = KEYS[3]
 		local index = tonumber(ARGV[1])
-		local file_name = ARGV[2]
+		local stop = tonumber(ARGV[2])
+
+		-- update target_key bitmap not exists then create it 
+		if redis.call("exists", KEYS[1]) == 0 then
+			for i=0,stop do
+				redis.call('SETBIT', target_key, i, 1)
+			end
+	 	end
+		
 
 		-- update current bit 
 		redis.call('SETBIT', current_key, index, 1)
-	
-		-- insert the encoded file name to HSET
-		redis.call('HSET', list_key, index, file_name)
-		
+
 		-- Check that the bitmaps are the same size
 		local size1 = redis.call('bitcount', target_key)
 		local size2 = redis.call('bitcount', current_key)
@@ -105,8 +105,13 @@ func (r redisLocker) setBitsTo1(ctx context.Context, target_key, current_key, li
 	
 		return 1
 	`
-	args := []interface{}{mission.MissionID, encodedFileName}
-	res, err := r.client.Eval(ctx, script, []string{target_key, current_key, list_key}, args...).Result()
+
+	target_key := fmt.Sprintf("%s_%d_%s", mission.VideoId, mission.MissionID, "encode")
+	current_key := fmt.Sprintf("%s_%d_%s_%s", mission.VideoId, mission.MissionID, "encode", "current")
+
+	//TotalChunk need to del 1 , because bitmap start from 0
+	args := []interface{}{mission.SubMissionID, mission.TotalChunk - 1}
+	res, err := r.client.Eval(ctx, script, []string{target_key, current_key}, args...).Result()
 	if _, ok := res.(int64); err != nil || !ok {
 		log.Println("Accomplish ", err, ok)
 		return false, err
@@ -144,3 +149,11 @@ func (r redisLocker) lock(ctx context.Context, lock_key, missions_key string, in
 	}
 	return res.(int64) == 2, nil
 }
+
+func (r redisLocker) lockKey(videoID string, missionID, subMissionID int) string {
+	return fmt.Sprintf("%s_%d_%d_%s", videoID, missionID, subMissionID, "encode")
+}
+
+// 		local file_name = ARGV[2]
+// -- insert the encoded file name to HSET
+// redis.call('HSET', list_key, index, file_name)

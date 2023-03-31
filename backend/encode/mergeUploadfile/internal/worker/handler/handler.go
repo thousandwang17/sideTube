@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-16 12:09:49
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-21 23:53:47
+ * @LastEditTime: 2023-03-12 18:58:26
  * @FilePath: /mergeUploadfile/internal/worker/handler/handler.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"mergeUploadFile/internal/worker"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -99,6 +100,14 @@ L:
 	select {
 	case <-down:
 		log.Println("mission done")
+		select {
+		case _, _ = <-h.notifyClose:
+			// will keep go on and  shut down the server
+		default:
+			// if rabbitmq connect closed, it will get there.
+			os.Exit(0)
+			return
+		}
 	case <-ctx.Done():
 		log.Println("Warring : context timeout ")
 	}

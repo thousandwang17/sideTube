@@ -215,6 +215,68 @@ func generateMPDQueueRegister(ch *amqp.Channel) error {
 	return nil
 }
 
+func SearchEngineQueueRegister(ch *amqp.Channel) error {
+	queue := os.Getenv("INSERT_SEARCH_ENGINE_QUEUE")
+	if queue == "" {
+		return errors.New("dected queue name is empty")
+	}
+
+	exchange := os.Getenv("INSERT_SEARCH_ENGINE_EXCHANGE")
+	if exchange == "" {
+		return errors.New("dected exchange name is empty")
+	}
+
+	q, err := ch.QueueDeclare(
+		queue,
+		true,
+		false,
+		false,
+		false,
+		map[string]interface{}{
+			// "x-dead-letter-exchange": "my-dlx",
+			// "x-dead-letter-routing-key": "my-dlq",
+			// "x-message-ttl": 60000,
+			"x-max-retries": 3,
+		})
+
+	if err != nil {
+		log.Println(err, "Failed to declare an dected queue")
+		return err
+	}
+
+	err = ch.ExchangeDeclare(
+		exchange,            // name
+		amqp.ExchangeDirect, // type
+		true,                // durable
+		false,               // auto-deleted
+		false,               // internal
+		false,               // no-wait
+		amqp.Table{
+			"x-delayed-type": "direct",
+		}, // arguments
+	)
+
+	if err != nil {
+		log.Println(err, "Failed to declare an dected exchange")
+		return err
+	}
+
+	err = ch.QueueBind(
+		q.Name,   // queue name
+		q.Name,   // routing key
+		exchange, // exchange
+		false,
+		nil,
+	)
+
+	if err != nil {
+		log.Println(err, "Failed to Bind dected queue and exchange")
+		return err
+	}
+
+	return nil
+}
+
 // changeConnection takes a new connection to the queue,
 // and updates the close listener to reflect this.
 func (client *RabbitClient) changeConnection(connection *amqp.Connection) {
@@ -234,6 +296,53 @@ func (client *RabbitClient) changeChannel(channel *amqp.Channel) {
 }
 
 // if error requeue to exchange
+func (client *RabbitClient) PublishSearchEngine(ctx context.Context, body []byte) error {
+	if !client.isReady {
+		return errors.New("failed to push: not connected")
+	}
+
+	ch, err := client.connection.Channel()
+	if err != nil {
+		return errors.New("faild to create channel")
+	}
+	defer ch.Close()
+
+	if err = ch.Tx(); err != nil {
+		return errors.New("SearchEngine failed to start tx")
+	}
+
+	if err = SearchEngineQueueRegister(ch); err != nil {
+		return errors.New("rabbiqmq channel Failed to Declare Search Engine Queue")
+	}
+
+	err = ch.PublishWithContext(
+		ctx,
+		os.Getenv("INSERT_SEARCH_ENGINE_EXCHANGE"), // exchange
+		os.Getenv("INSERT_SEARCH_ENGINE_QUEUE"),    // routing key
+		false,                                      // mandatory
+		false,                                      // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		})
+
+	if err != nil {
+		log.Println(err)
+		if err = ch.TxRollback(); err != nil {
+			log.Println("tx rollback", err)
+		}
+		return errors.New("Failed to publish a message")
+	}
+
+	if err = ch.TxCommit(); err != nil {
+		return errors.New("Failed to commit transaction")
+	}
+
+	log.Printf("GENERATE_MPD_QUEUE [x] Sent %s", body)
+	return nil
+}
+
+// if error requeue to exchange
 func (client *RabbitClient) PublishgenerateMPD(ctx context.Context, body []byte, header amqp.Table) error {
 	if !client.isReady {
 		return errors.New("failed to push: not connected")
@@ -250,7 +359,7 @@ func (client *RabbitClient) PublishgenerateMPD(ctx context.Context, body []byte,
 	}
 
 	if err = generateMPDQueueRegister(ch); err != nil {
-		return errors.New("rabbiqmq channel Failed to Declare mergeVideo Queue")
+		return errors.New("rabbiqmq channel Failed to Declare generateMPD Queue")
 	}
 
 	err = ch.PublishWithContext(

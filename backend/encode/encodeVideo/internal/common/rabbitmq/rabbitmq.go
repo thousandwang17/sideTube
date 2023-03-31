@@ -127,9 +127,11 @@ func (client *RabbitClient) handleReInit(conn *amqp.Connection) bool {
 			return true
 		case <-client.notifyConnClose:
 			client.logger.Println("Connection closed. Reconnecting...")
+			client.channel.Close()
 			return false
 		case <-client.notifyChanClose:
 			client.logger.Println("Channel closed. Re-running init...")
+			client.channel.Close()
 		}
 	}
 }
@@ -214,13 +216,13 @@ func encodeVideoRegister(ch *amqp.Channel) error {
 	return nil
 }
 
-func generateMpdQueueRegister(ch *amqp.Channel) error {
-	queue := os.Getenv("GENERATE_MPD_QUEUE")
+func mergeEncodedVideoQueueRegister(ch *amqp.Channel) error {
+	queue := os.Getenv("MERGE_ENCODED_VIDEO_QUEUE")
 	if queue == "" {
 		return errors.New("Mpd queue name is empty")
 	}
 
-	exchange := os.Getenv("GENERATE_MPD_EXCHANGE")
+	exchange := os.Getenv("MERGE_ENCODED_VIDEO_EXCHANGE")
 	if exchange == "" {
 		return errors.New("Mpd exchange name is empty")
 	}
@@ -341,8 +343,8 @@ func (client *RabbitClient) PublishEncodeVideo(ctx context.Context, missions []b
 	return nil
 }
 
-// after handling, publish another mission to encoding video queue
-func (client *RabbitClient) PublishGenerateMpd(ctx context.Context, body []byte) error {
+// after handling, publish another mission to Merge Encoded video queue
+func (client *RabbitClient) PublishMergeEncodedVideo(ctx context.Context, body []byte) error {
 	if !client.isReady {
 		return errors.New("failed to push: not connected")
 	}
@@ -354,19 +356,19 @@ func (client *RabbitClient) PublishGenerateMpd(ctx context.Context, body []byte)
 	defer ch.Close()
 
 	if err = ch.Tx(); err != nil {
-		return errors.New("Publishgenerate_mpd failed to start tx")
+		return errors.New("PublishMERGE_ENCODED_VIDEO failed to start tx")
 	}
 
-	if err = generateMpdQueueRegister(ch); err != nil {
+	if err = mergeEncodedVideoQueueRegister(ch); err != nil {
 		return errors.New("rabbiqmq channel Failed to Declare mergeVideo Queue")
 	}
 
 	err = ch.PublishWithContext(
 		ctx,
-		os.Getenv("GENERATE_MPD_EXCHANGE"), // exchange
-		os.Getenv("GENERATE_MPD_QUEUE"),    // routing key
-		false,                              // mandatory
-		false,                              // immediate
+		os.Getenv("MERGE_ENCODED_VIDEO_EXCHANGE"), // exchange
+		os.Getenv("MERGE_ENCODED_VIDEO_QUEUE"),    // routing key
+		false,                                     // mandatory
+		false,                                     // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
@@ -384,7 +386,7 @@ func (client *RabbitClient) PublishGenerateMpd(ctx context.Context, body []byte)
 		return errors.New("Failed to commit transaction")
 	}
 
-	log.Printf("GENERATE_MPD_QUEUE [x] Sent %s", body)
+	log.Printf("MERGE_ENCODED_VIDEO_QUEUE [x] Sent %s", body)
 	return nil
 }
 

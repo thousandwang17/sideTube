@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-15 20:49:23
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-02-22 19:46:08
+ * @LastEditTime: 2023-03-01 19:51:55
  * @FilePath: /generateMPD/lockRepo/redis.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -11,6 +11,7 @@ package lockRepo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"generateMPD/internal/worker"
 	"log"
 	"strings"
@@ -66,17 +67,38 @@ func (r redisLocker) Lock(ctx context.Context, videoID string, ttl time.Duration
 func (r redisLocker) UnLock(ctx context.Context, videoID string) error {
 	script := `
 	local lock_key = KEYS[1]
-	local list_key = KEYS[2]
-
 	redis.call('DEL', lock_key)
-	redis.call('DEL', list_key)
 
 	return 1
 `
 	args := []interface{}{}
-	_, err := r.client.Eval(ctx, script, []string{videoID + "_MPD", videoID + "_list"}, args...).Result()
+	_, err := r.client.Eval(ctx, script, []string{videoID + "_MPD"}, args...).Result()
 	if err != nil {
 		log.Println("Accomplish ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r redisLocker) ReleaseMissionKey(ctx context.Context, videoID string) error {
+	script := `
+	local encode_key = KEYS[1]
+	local current_key = KEYS[2]
+	redis.call('DEL', encode_key)
+	redis.call('DEL', current_key)
+
+	return 1
+`
+
+	args := []interface{}{}
+	_, err := r.client.Eval(ctx, script,
+		[]string{
+			fmt.Sprintf("%s_%s", videoID, "encode"),
+			fmt.Sprintf("%s_%s_%s", videoID, "encode", "current"),
+		}, args...).Result()
+	if err != nil {
+		log.Println("Release ", err)
 		return err
 	}
 
