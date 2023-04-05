@@ -1,0 +1,479 @@
+version: '3'
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+
+  front:
+    build:
+      context: ./front/sidetube
+      dockerfile: Dockerfile
+    container_name: front
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    ports:
+      - "3000:3000"
+
+  video_upload:
+    build:
+      context: ./backend/videoUpload
+      dockerfile: Dockerfile
+    container_name: videoUpload
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    volumes:
+      - ../tempVideo/:/var/videos/
+    ports:
+      - "3001:80"
+    env_file:
+      - ./env/http.env
+      - ./env/rabbit.env
+      - ./env/mongo.env
+      - ./env/video.env
+    environment:
+      - MONGO_COLLECTION=videoMeta
+      - MERGE_VIDEO_EXCHANGE=merge_video_exchange
+      - MERGE_VIDEO_QUEUE=merge_video
+    depends_on:
+      - rabbitmq
+      - mongo
+
+  channelstudio:
+    build:
+      context: ./backend/channelStudio
+      dockerfile: Dockerfile
+    container_name: channelStudio
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    volumes:
+      - ../tempVideo/:/var/videos/
+    ports:
+      - "3002:80"
+    env_file:
+      - ./env/http.env
+      - ./env/rabbit.env
+      - ./env/mongo.env
+      - ./env/video.env
+    environment:
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_CHANNEL_VIDEO_COUNT_COLLECTION=channelVideoCount
+    depends_on:
+      - rabbitmq
+      - mongo
+
+  video_streaming:
+    build:
+      context: ./backend/videoStreaming
+      dockerfile: Dockerfile
+    container_name: videoStreaming
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    volumes:
+      - ../tempVideo/:/var/videos/
+    ports:
+      - "3003:80"
+    env_file:
+      - ./env/http.env
+      - ./env/mongo.env
+      - ./env/video.env
+    environment:
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_VIEW_LOGS_COLLECTION=viewLogs
+    depends_on:
+      - mongo
+
+  video_message:
+    build:
+      context: ./backend/videoMessage
+      dockerfile: Dockerfile
+    container_name: videoMessage
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    ports:
+      - "3004:80"
+    env_file:
+      - ./env/http.env
+      - ./env/mongo.env
+    environment:
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_MESSAGE_COLLECTION=message
+      - MONGO_Reply_COLLECTION=Reply
+    depends_on:
+      - mongo
+
+  jwt_generater:
+    build:
+      context: ./backend/jwtGenerater
+      dockerfile: Dockerfile
+    container_name: jwtGenerater
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    ports:
+      - "3005:80"
+      - "3006:81"
+    env_file:
+      - ./env/http.env
+      - ./env/grpc.env
+    environment:
+      - JWT_ACCESS_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
+      - JWT_ACCESS_HEADER_ALG=HS256
+
+  users:
+    build:
+      context: ./backend/users
+      dockerfile: Dockerfile
+    container_name: users
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    ports:
+      - "3007:80"
+    env_file:
+      - ./env/http.env
+      - ./env/mongo.env
+    environment:
+      - MONGO_USER_COLLECTION=user
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGO_HISTORY_COLLECTION=viewLogs
+      - GRPC_ADDRESS=172.17.0.1
+      - GRPC_PORT=3006
+      - JWT_ACCESS_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0
+    depends_on:
+      - mongo
+
+  fake_recommend:
+    build:
+      context: ./backend/fakeRecommend
+      dockerfile: Dockerfile
+    container_name: fake_recommend
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    ports:
+      - "3008:80"
+    env_file:
+      - ./env/http.env
+      - ./env/mongo.env
+    environment:
+      - MONGO_COLLECTION=videoMeta
+    depends_on:
+      - mongo
+
+  picture:
+    build:
+      context: ./backend/picture
+      dockerfile: Dockerfile
+    container_name: picture
+    restart: unless-stopped
+    volumes:
+      - ../tempVideo/:/var/videos/
+    networks:
+      - network_sidetube
+    ports:
+      - "3009:80"
+    env_file:
+      - ./env/http.env
+      - ./env/video.env
+
+  search:
+    build:
+      context: ./backend/search
+      dockerfile: Dockerfile
+    container_name: search
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+      - network_elastic
+    ports:
+      - "3010:80"
+    env_file:
+      - ./env/http.env
+      - ./env/mongo.env
+      - ./env/elastic.env
+    environment:
+      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGO_VIDEO_COLLECTION=videoMeta
+    depends_on:
+      - elasticsearch
+      - mongo
+
+  ## encode part  ##
+
+  merge_uploadfile:
+    build:
+      context: ./backend/encode/mergeUploadfile
+      dockerfile: Dockerfile
+    container_name: mergeUploadfile
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - MERGE_VIDEO_EXCHANGE=merge_video_exchange
+      - MERGE_VIDEO_QUEUE=merge_video
+      - DECTED_VIDEO_EXCHANGE=dected_video_exchange
+      - DECTED_VIDEO_QUEUE=dected_video
+    depends_on:
+      - rabbitmq
+
+  detect_video:
+    build:
+      context: ./backend/encode/detectVideo
+      dockerfile: Dockerfile
+    container_name: detectVideo
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - ENCODE_VIDEO_EXCHANGE=encode_video_exchange
+      - ENCODE_VIDEO_QUEUE=encode_video
+      - DECTED_VIDEO_EXCHANGE=dected_video_exchange
+      - DECTED_VIDEO_QUEUE=dected_video
+      - ENCODE_AUDIO_EXCHANGE=encode_audio_exchange
+      - ENCODE_AUDIO_QUEUE=encode_audio
+      - ENCODE_VIDEO_SIZE=40000000000000 # a worker mechine can handel bit in 10 mins 4 x 10^13
+    depends_on:
+      - rabbitmq
+
+  encode_video:
+    build:
+      context: ./backend/encode/encodeVideo
+      dockerfile: Dockerfile
+    container_name: encodeVideo
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - ENCODE_VIDEO_EXCHANGE=encode_video_exchange
+      - ENCODE_VIDEO_QUEUE=encode_video
+      - MERGE_ENCODED_VIDEO_EXCHANGE=merge_encoded_video_exchange
+      - MERGE_ENCODED_VIDEO_QUEUE=merge_encoded_video
+    depends_on:
+      - rabbitmq
+
+  merge_encoded_video:
+    build:
+      context: ./backend/encode/mergeEncodedVideo
+      dockerfile: Dockerfile
+    container_name: mergeEncodedVideo
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - MERGE_ENCODED_VIDEO_EXCHANGE=merge_encoded_video_exchange
+      - MERGE_ENCODED_VIDEO_QUEUE=merge_encoded_video
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+    depends_on:
+      - rabbitmq
+
+  encode_audio:
+    build:
+      context: ./backend/encode/encodeAudio
+      dockerfile: Dockerfile
+    container_name: encodeAudio
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - ENCODE_AUDIO_EXCHANGE=encode_audio_exchange
+      - ENCODE_AUDIO_QUEUE=encode_audio
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+    depends_on:
+      - rabbitmq
+
+  generate_mpd:
+    build:
+      context: ./backend/encode/generateMPD
+      dockerfile: Dockerfile
+    container_name: generateMPD
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+      - ./env/mongo.env
+
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_COLLECTION=videoMeta
+    depends_on:
+      - rabbitmq
+      - mongo
+
+  insert_to_search_engine:
+    build:
+      context: ./backend/encode/insertToSearchEngine
+      dockerfile: Dockerfile
+    container_name: toSearchEngine
+    restart: unless-stopped
+    networks:
+      - network_sidetube
+      - network_elastic
+    env_file:
+      - ./env/rabbit.env
+      - ./env/redis.env
+      - ./env/video.env
+      - ./env/mongo.env
+      - ./env/elastic.env
+    volumes:
+      - ../tempVideo/:/var/videos/
+    environment:
+      - NUMBER_OF_WORKER=1 # in a machine
+      - NUMBER_OF_WORKER_HANDLER=100 # pre thread
+      - GENERATE_MPD_EXCHANGE=generate_mpd_exchange
+      - GENERATE_MPD_QUEUE=generate_mpd
+      - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
+      - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
+      - MONGO_VIDEO_COLLECTION=videoMeta
+      - MONGODB_HOST=mongodb://mongo:27017/
+      - RABBIT_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+      - mongo
+
+  ## stateful  part ##
+  redis:
+    container_name: redis_v6.0.12
+    restart: unless-stopped
+    network_mode: bridge
+    image: redis:6.0.12
+    volumes:
+      - ./stateful/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+    networks:
+      - network_sidetube
+
+  elasticsearch:
+    image: elasticsearch:8.2.2
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+    volumes:
+      - ./stateful/elasticsearch/data:/usr/share/elasticsearch/data
+    ports:
+      - target: 9200
+        published: 9200
+    networks:
+      - network_elastic
+
+  kibana:
+    image: kibana:8.2.2
+    ports:
+      - target: 5601
+        published: 5601
+    depends_on:
+      - elasticsearch
+    networks:
+      - network_elastic
+
+  rabbitmq:
+    build:
+      context: ./stateful/rabbitmq
+      dockerfile: Dockerfile
+    container_name: 'rabbitmq'
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./stateful/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./stateful/rabbitmq/log/:/var/log/rabbitmq/
+    networks:
+      - network_sidetube
+
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - ./stateful/mongo/data:/data/db
+      - ./stateful/mongo/conf:/etc/mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - network_sidetube
+
+  mongo-express:
+    image: mongo-express
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_SERVER: mongo
+    networks:
+      - network_sidetube
+
+networks:
+  network_sidetube:
+    name: sidetube
+    driver: bridge
+  network_elastic:
+    name: elastic
+    driver: bridge
