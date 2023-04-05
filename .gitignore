@@ -1,2 +1,4 @@
-/tmepVideo/*
 .DS_Store
+/stateful/elasticSearch/data
+/stateful/rabbitmq/data
+/stateful/mongo/data
