@@ -2,3 +2,28 @@
 /stateful/elasticSearch/data
 /stateful/rabbitmq/data
 /stateful/mongo/data
+
+
+
+# front
+# dependencies
+/front/node_modules
+/front/.pnp
+/front/.pnp.js
+
+# testing
+/front/coverage
+
+# production
+/front/build
+
+# misc
+.DS_Store
+/front/.env.local
+/front/.env.development.local
+/front/.env.test.local
+/front/.env.production.local
+
+/front/npm-debug.log*
+/front/yarn-debug.log*
+/front/yarn-error.log*

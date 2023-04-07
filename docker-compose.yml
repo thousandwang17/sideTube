@@ -13,7 +13,7 @@ services:
 
   front:
     build:
-      context: ./front/sidetube
+      context: ./front
       dockerfile: Dockerfile
     container_name: front
     restart: unless-stopped
