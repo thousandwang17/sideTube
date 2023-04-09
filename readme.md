@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-04-07 22:55:18
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-04-08 19:10:23
+ * @LastEditTime: 2023-04-09 14:28:52
  * @FilePath: /youtube/readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -33,7 +33,7 @@ https://github.com/ThreeDotsLabs/wild-workouts-go-ddd-example
 ##### Run cmd
 
 ```
-mkdir -p ../tempVideo ./stateful/elasticSearch/data  ./stateful/mongo/data
+mkdir -p ../tempVideo ./stateful/elasticSearch/data  ./stateful/mongo/data ./stateful/rabbitmq/data
 
 docker-compose up
 ```
