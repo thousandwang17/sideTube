@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-04-07 22:55:18
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-04-10 20:49:16
+ * @LastEditTime: 2023-04-10 20:56:47
  * @FilePath: /youtube/readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -81,3 +81,7 @@ migrate -path "./backend/db_migration/mongo/"  -database 'mongodb://video_meta:v
 ![](https://i.imgur.com/fOOA4K2.jpg)
 
 ![](https://i.imgur.com/UWufOgP.png)
+
+### Contributors
+
+[ChatGPT](https://openai.com)
