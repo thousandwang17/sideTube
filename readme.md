@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-04-07 22:55:18
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-04-09 14:28:52
+ * @LastEditTime: 2023-04-10 20:49:16
  * @FilePath: /youtube/readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -47,7 +47,7 @@ youtube-kibana-1         | [2023-04-06T04:39:17.885+00:00][INFO ][status] Kibana
 youtube-kibana-1         | [2023-04-06T04:39:35.887+00:00][INFO ][status] Kibana is now available (was degraded)
 ```
 
-##### docker exex -it <mongo container id> bash
+##### docker exex -it < mongo container id > bash
 
 ```
 mongo --authenticationDatabase admin --username root
