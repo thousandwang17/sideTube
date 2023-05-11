@@ -2,7 +2,7 @@
 /stateful/elasticSearch/data/*
 /stateful/rabbitmq/data/*
 /stateful/mongo/data/*
-
+/stateful/rabbitmq/log/*
 
 
 # front

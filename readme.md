@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-04-07 22:55:18
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-04-10 20:56:47
+ * @LastEditTime: 2023-05-11 17:29:07
  * @FilePath: /youtube/readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -22,7 +22,22 @@ SideTube is a side project that implements a simple youtube with multi micro API
 
 ### System Architecture
 
-https://drive.google.com/file/d/1t72_ir_Kd4dl0995LwKoyIaiEPA4oEba/view?usp=sharing
+![](https://hackmd.io/_uploads/SysJ7E5Vh.png)
+
+| Video Upload  | Channel Studio   | Video Streaming | Video Message |
+| ------------- | :--------------- | --------------- | ------------- |
+| upload videos | edit video meta  | provide video   | message       |
+|               | video list       |                 | edit message  |
+|               | set public state |                 | reply         |
+|               |                  |                 | edit reply    |
+
+| User          | JWT generate        | Picture     | Search             |
+| :------------ | :------------------ | :---------- | :----------------- |
+| login         | create access token | videos plan | video title search |
+| logout        |                     |             |                    |
+| register      |                     |             |                    |
+| get user info |                     |             |                    |
+| history       |                     |             |                    |
 
 ### Reference
 
