@@ -2,14 +2,27 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-04-07 22:55:18
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-05-11 17:29:07
+ * @LastEditTime: 2023-05-12 22:06:24
  * @FilePath: /youtube/readme.md
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
 
 # SideTube
 
-SideTube is a side project that implements a simple youtube with multi micro API server, DDD, Grpc, FFmpeg, Rabbitmq, and ElasticSearch what I learn.
+SideTube is a side project that implements a simple youtube. Everyone can upload videos to the platform and message each video. The system will auto convert uploading mp4 video to webm-dash with different px (480p, 720p, 1080p) and fps(30, 60) for adaptive streaming.
+
+This system has been built with a multi-Golang microserver that is easy to follow Domain Drive Design for Long-term development. On the other hand, using Grpc to connect each server reduces network bandwidth. The encoding part uses FFmpeg with Rabbitmq and Redis distribute lock to encode video mission that is easy to scale.
+
+### Directories
+
+| folder         | introduction                                         |
+| :------------- | :--------------------------------------------------- |
+| nginx          | Http Router                                          |
+| env            | docker-compose env files                             |
+| stateful       | config and data of ElasticSearch, Rabbitmq and mongo |
+| front          | React18 with [Material-UI](https://mui.com/)         |
+| backend        | Golang Api server                                    |
+| backend/encode | Encoding video by FFmpeg                             |
 
 ### Directories
 
@@ -31,13 +44,13 @@ SideTube is a side project that implements a simple youtube with multi micro API
 |               | set public state |                 | reply         |
 |               |                  |                 | edit reply    |
 
-| User          | JWT generate        | Picture     | Search             |
-| :------------ | :------------------ | :---------- | :----------------- |
-| login         | create access token | videos plan | video title search |
-| logout        |                     |             |                    |
-| register      |                     |             |                    |
-| get user info |                     |             |                    |
-| history       |                     |             |                    |
+| Recommend          | User          | JWT generate        | Picture     | Search             |
+| :----------------- | :------------ | :------------------ | :---------- | :----------------- |
+| home recommend     | login         | create access token | videos plan | video title search |
+| relative recommend | logout        |                     |             |                    |
+|                    | register      |                     |             |                    |
+|                    | get user info |                     |             |                    |
+|                    | history       |                     |             |                    |
 
 ### Reference
 
