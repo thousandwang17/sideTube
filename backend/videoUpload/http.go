@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-04 17:36:26
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-03-25 19:58:58
+ * @LastEditTime: 2023-09-02 11:37:26
  * @FilePath: /videoUpload/internal/transport/http/http.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -46,7 +46,7 @@ func startHttpServer() {
 
 	// register apis
 	r := mux.NewRouter()
-	s := r.PathPrefix("/videoUpload").Subrouter()
+	s := r.PathPrefix("/api/videoUpload").Subrouter()
 
 	s.Handle("/start", vts.StartUploadRegister(svc, vaild)).Methods("POST")
 

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }} 
+spec:
+  replicas: {{ .Values.replicaCount }} # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }} 
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }} 
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-container
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          ports:
+            - containerPort: {{ .Values.service.http.targetPort }} # The port your application listens on
+            - containerPort: {{ .Values.service.grpc.targetPort }} # The port your application listens on
+          env:
+            - name: JWT_ACCESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_access_secret_key
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_secret_key
+            - name: JWT_HEADER_ALG
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_header_alg
+            - name: JWT_ACCESS_HEADER_ALG
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_access_header_alg
+            - name: HTTP_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: http_address
+            - name: HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: http_port
+            - name: GRPC_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: grpc_address
+            - name: GRPC_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: grpc_port
+            - name: CROS_ALLOW_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: cros_allow_origin
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development

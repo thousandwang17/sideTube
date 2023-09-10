@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-01-04 17:36:26
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-03-25 20:39:35
+ * @LastEditTime: 2023-09-02 13:58:14
  * @FilePath: /videoMessage/internal/transport/http/http.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -36,16 +36,16 @@ func startHttpServer() {
 
 	// register apis
 	r := mux.NewRouter()
-	m := r.PathPrefix("/video/message").Subrouter()
 	// register validator
 	validate := validator.New()
+	m := r.PathPrefix("/api/video/message").Subrouter()
 
 	m.Handle("/list", vts.MessageListRegister(svc, validate)).Methods("POST")
 	m.Handle("/create", vts.MessageRegister(svc, validate)).Methods("POST")
 	m.Handle("/edit", vts.EditMessageRegister(svc, validate)).Methods("POST")
 	m.Handle("/delete", vts.DeleteMessageRegister(svc, validate)).Methods("POST")
 
-	rp := r.PathPrefix("/video/reply").Subrouter()
+	rp := r.PathPrefix("/api/video/reply").Subrouter()
 	rp.Handle("/list", vts.ReplyListRegister(svc, validate)).Methods("POST")
 	rp.Handle("/create", vts.ReplyRegister(svc, validate)).Methods("POST")
 	rp.Handle("/edit", vts.EditReplyRegister(svc, validate)).Methods("POST")

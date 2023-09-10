@@ -3,9 +3,9 @@ FROM golang:1.18.9
 COPY ./ /src/
 WORKDIR /src/
 RUN ls 
-RUN CGO_ENABLED=0 GOOS=linux go build -o recommend
+RUN CGO_ENABLED=0 GOOS=linux go build -o picture
 
 FROM alpine:3.17
-COPY --from=0 /src/recommend /
+COPY --from=0 /src/picture /
 RUN mkdir /var/videos
-CMD ./recommend
+CMD ./picture

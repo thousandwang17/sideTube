@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }} 
+spec:
+  replicas: {{ .Values.replicaCount }} # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }} 
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }} 
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-container
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          ports:
+            - containerPort: {{ .Values.service.targetPort }} # The port your application listens on
+          env:
+            - name: HTTP_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-picture-configmap
+                  key: http_address
+            - name: HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-picture-configmap
+                  key: http_port
+            - name: CROS_ALLOW_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: cros_allow_origin
+            - name: VIDEO_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-video-configmap
+                  key: video_path
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development
+          volumeMounts:
+            - name: videos-data
+              mountPath: /var/videos/
+      volumes:
+        - name: videos-data
+          persistentVolumeClaim:
+            claimName: videos-pvc
+

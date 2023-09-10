@@ -1,0 +1,86 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sidetube-ingress
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /api/token
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-token-service
+                port:
+                  number: 80
+          - path: /api/user
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-user-service
+                port:
+                  number: 80
+          - path: /api/search
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-search-service
+                port:
+                  number: 80
+          - path: /api/studio/video
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-studio-service
+                port:
+                  number: 80
+          - path: /api/videoUpload
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-video-upload-service
+                port:
+                  number: 80
+          - path: /api/video/message
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-message-service
+                port:
+                  number: 80
+          - path: /api/video/reply
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-message-service
+                port:
+                  number: 80
+          - path: /api/video
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-streaming-service
+                port:
+                  number: 80
+          - path: /api/recommend
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-recommend-service
+                port:
+                  number: 80
+          - path: /picture
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-picture-service
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sidetube-front-service
+                port:
+                  number: 80

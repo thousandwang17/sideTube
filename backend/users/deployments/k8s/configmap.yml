@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidetube-user-configmap
+data:
+  http_address: "0.0.0.0"
+  http_port: "80"

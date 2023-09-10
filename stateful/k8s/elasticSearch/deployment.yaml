@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-elastic-deployment
+  labels:
+    app: sidetube-elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sidetube-elastic
+  template:
+    metadata:
+      labels:
+        app: sidetube-elastic
+    spec:
+      containers:
+        - name: sidetube-elastic
+          image: elasticsearch:8.2.2
+          ports:
+            - containerPort: 9200
+          env:
+            - name: discovery.type
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-elastic-configmap
+                  key: discovery_type
+            - name: ES_JAVA_OPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-elastic-configmap
+                  key: ES_JAVA_OPTS
+            - name: xpack.security.enabled
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-elastic-configmap
+                  key: xpack_security_enabled
+          volumeMounts:
+            - name: elastic-data
+              mountPath: /usr/share/elasticsearch/data
+      volumes:
+        - name: elastic-data
+          persistentVolumeClaim:
+            claimName: elastic-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+spec:
+  selector:
+    app: sidetube-elastic
+  ports:
+    - protocol: TCP
+      port: 9200
+      targetPort: 9200
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: kibana
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: kibana
+#   template:
+#     metadata:
+#       labels:
+#         app: kibana
+#     spec:
+#       containers:
+#         - name: kibana
+#           image: kibana:8.2.2
+#           ports:
+#             - containerPort: 5601
+#           env:
+#             - name: ELASTICSEARCH_HOSTS
+#               value: http://elasticsearch:9200
+
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: kibana
+# spec:
+#   selector:
+#     app: kibana
+#   type: NodePort
+#   ports:
+#     - protocol: TCP
+#       port: 5601
+#       targetPort: 5601
+#       nodePort: 30601

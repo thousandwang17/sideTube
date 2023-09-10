@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-front
+spec:
+  replicas: 1 # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: sidetube-front
+  template:
+    metadata:
+      labels:
+        app: sidetube-front
+    spec:
+      containers:
+        - name: sidetube-front-container
+          image: sidetube-registry:52271/sidetube-front:latest
+          ports:
+            - containerPort: 3000 # The port your application listens on
+          # Add more configurations like environment variables, volumes, etc., as needed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidetube-front-service
+spec:
+  selector:
+    app: sidetube-front
+  ports:
+    - protocol: TCP
+      port: 80 # The port you want to expose within the cluster
+      targetPort: 3000 # The port your application listens on within the pod
+  type: LoadBalancer # Change to 'LoadBalancer' or 'NodePort' if you need external access

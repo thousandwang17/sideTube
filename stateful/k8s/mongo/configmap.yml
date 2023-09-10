@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidetube-mongo-configmap
+data:
+  mongodb_host: sidetube-mongo-svc
+  mongo_database: "video_meta"
+  mongo_user_collection: "user"
+  mongo_video_collection: "videoMeta"
+  mongo_message_collection: "message"
+  mongo_reply_collection: "Reply"
+  mongo_history_collection: "viewLogs"

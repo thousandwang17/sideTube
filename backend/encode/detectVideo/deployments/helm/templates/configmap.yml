@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-configmap
+data:
+  NUMBER_OF_WORKER: "1"
+  ENCODE_VIDEO_SIZE: "40000000000000"

@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2022-12-31 16:07:51
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-03-02 21:05:06
+ * @LastEditTime: 2023-09-02 12:32:08
  * @FilePath: /videoUpload/internal/videoUpload/metaRepository/mongoRepo.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -51,7 +51,7 @@ func NewMongoRepo(db *mongo.Client) videoUpload.MetaRepository {
 	return &mongolRepo{
 		db:         db,
 		database:   os.Getenv("MONGO_DATABASE"),
-		collection: os.Getenv("MONGO_COLLECTION"),
+		collection: os.Getenv("MONGO_VIDEO_COLLECTION"),
 	}
 }
 

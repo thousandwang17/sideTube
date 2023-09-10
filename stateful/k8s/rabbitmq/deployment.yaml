@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1 # Number of RabbitMQ nodes
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.9.7-management
+          ports:
+            - containerPort: 5672 # RabbitMQ port
+            - containerPort: 15672 # Management UI port
+          volumeMounts:
+            - name: rabbitmq-persistent-storage
+              mountPath: /var/lib/rabbitmq/
+      volumes:
+        - name: rabbitmq-persistent-storage
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-management
+spec:
+  type: LoadBalancer
+  selector:
+    app: rabbitmq
+  ports:
+    - port: 15672
+      name: http-management
+      targetPort: 15672
+    - port: 5672
+      name: http
+      targetPort: 5672

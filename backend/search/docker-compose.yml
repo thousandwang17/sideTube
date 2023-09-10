@@ -19,7 +19,7 @@ services:
       - ELASTIC_INDEX=videos
       - MONGODB_USERNAME=root
       - MONGODB_PASSWORD=root
-      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGODB_HOST=mongo:27017/
       - MONGO_DATABASE=video_meta
       - MONGO_VIDEO_COLLECTION=videoMeta
       - JWT_SECRET_KEY=G3yd6JluDc7ZtaTC2opHra!5ZMSay9IO1faUuBW0

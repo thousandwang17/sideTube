@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-configmap
+data:
+  NUMBER_OF_WORKER: "1"
+  NUMBER_OF_WORKER_HANDLER: "100"

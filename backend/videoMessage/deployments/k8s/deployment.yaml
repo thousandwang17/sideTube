@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-message
+spec:
+  replicas: 1 # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: sidetube-message
+  template:
+    metadata:
+      labels:
+        app: sidetube-message
+    spec:
+      containers:
+        - name: sidetube-message-container
+          image: sidetube-registry:52271/sidetube-message:latest
+          ports:
+            - containerPort: 80 # The port your application listens on
+          env:
+            #mongo
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-mongo-secret
+                  key: mongodb_username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-mongo-secret
+                  key: mongodb_password
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-mongo-configmap
+                  key: mongodb_host
+            - name: MONGO_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-mongo-configmap
+                  key: mongo_database
+            - name: MONGO_MESSAGE_COLLECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-mongo-configmap
+                  key: mongo_message_collection
+            - name: MONGO_Reply_COLLECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-mongo-configmap
+                  key: mongo_reply_collection
+            - name: MONGO_VIDEO_COLLECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-mongo-configmap
+                  key: mongo_video_collection
+            #net
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_secret_key
+            - name: JWT_HEADER_ALG
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-secret
+                  key: jwt_header_alg
+            - name: HTTP_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-message-configmap
+                  key: http_address
+            - name: HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-message-configmap
+                  key: http_port
+            - name: CROS_ALLOW_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: cros_allow_origin
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidetube-message-service
+spec:
+  selector:
+    app: sidetube-message
+  ports:
+    - protocol: TCP
+      port: 80 # The port you want to expose within the cluster
+      targetPort: 80 # The port your application listens on within the pod
+  type: LoadBalancer # Change to 'LoadBalancer' or 'NodePort' if you need external access

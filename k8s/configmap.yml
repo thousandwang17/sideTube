@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidetube-configmap
+data:
+  http_address: "0.0.0.0"
+  http_port: "80"
+  grpc_address: "0.0.0.0"
+  grpc_port: "81"
+  jwt_grpc_address: sidetube-token-service
+  jwt_grpc_port: "81"
+  cros_allow_origin: "http://localhost"
+  development: "test"

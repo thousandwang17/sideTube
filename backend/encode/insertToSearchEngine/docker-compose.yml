@@ -23,7 +23,7 @@ services:
       - REDIS_DB=0
       - MONGODB_USERNAME=root
       - MONGODB_PASSWORD=root
-      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGODB_HOST=mongo:27017/
       - MONGO_DATABASE=video_meta
       - MONGO_VIDEO_COLLECTION=videoMeta
       - ELASTIC_HOST=172.17.0.1

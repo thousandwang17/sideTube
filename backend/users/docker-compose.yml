@@ -19,7 +19,7 @@ services:
       - GRPC_PORT=3006
       - MONGODB_USERNAME=root
       - MONGODB_PASSWORD=root
-      - MONGODB_HOST=mongodb://172.17.0.1:27017/
+      - MONGODB_HOST=172.17.0.1:27017
       - MONGO_DATABASE=video_meta
       - MONGO_USER_COLLECTION=user
       - MONGO_VIDEO_COLLECTION=videoMeta

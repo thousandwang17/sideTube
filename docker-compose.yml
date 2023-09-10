@@ -42,7 +42,7 @@ services:
       - ./env/mongo.env
       - ./env/video.env
     environment:
-      - MONGO_COLLECTION=videoMeta
+      - MONGO_VIDEO_COLLECTION=videoMeta
       - MERGE_VIDEO_EXCHANGE=merge_video_exchange
       - MERGE_VIDEO_QUEUE=merge_video
     read_only: true
@@ -179,7 +179,7 @@ services:
       - ./env/http.env
       - ./env/mongo.env
     environment:
-      - MONGO_COLLECTION=videoMeta
+      - MONGO_VIDEO_COLLECTION=videoMeta
     read_only: true
     depends_on:
       - mongo
@@ -217,7 +217,7 @@ services:
       - ./env/mongo.env
       - ./env/elastic.env
     environment:
-      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGODB_HOST=mongo:27017/
       - MONGO_VIDEO_COLLECTION=videoMeta
     depends_on:
       - elasticsearch
@@ -366,7 +366,7 @@ services:
       - GENERATE_MPD_QUEUE=generate_mpd
       - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
       - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
-      - MONGO_COLLECTION=videoMeta
+      - MONGO_VIDEO_COLLECTION=videoMeta
     depends_on:
       - rabbitmq
       - mongo
@@ -396,7 +396,7 @@ services:
       - INSERT_SEARCH_ENGINE_EXCHANGE=insert_search_engine_exchange
       - INSERT_SEARCH_ENGINE_QUEUE=insert_search_engine
       - MONGO_VIDEO_COLLECTION=videoMeta
-      - MONGODB_HOST=mongodb://mongo:27017/
+      - MONGODB_HOST=mongo:27017/
       - RABBIT_HOST=rabbitmq
     depends_on:
       - rabbitmq

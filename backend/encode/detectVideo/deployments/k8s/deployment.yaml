@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-detect-video
+spec:
+  replicas: 1 # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: sidetube-detect-video
+  template:
+    metadata:
+      labels:
+        app: sidetube-detect-video
+    spec:
+      containers:
+        - name: sidetube-detect-video-container
+          image: sidetube-registry:52271/sidetube-detect-video:latest
+          env:
+            #rabbitmq
+            - name: RABBIT_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: RABBIT_HOST
+            - name: RABBIT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: RABBIT_PORT
+            - name: RABBIT_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-rabbitmq-secret
+                  key: RABBIT_USER_NAME
+            - name: RABBIT_USER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-rabbitmq-secret
+                  key: RABBIT_USER_PASS
+            - name: ENCODE_VIDEO_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: ENCODE_VIDEO_EXCHANGE
+            - name: ENCODE_VIDEO_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: ENCODE_VIDEO_QUEUE
+            - name: DECTED_VIDEO_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: DECTED_VIDEO_QUEUE
+            - name: DECTED_VIDEO_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: DECTED_VIDEO_EXCHANGE
+            - name: ENCODE_AUDIO_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: ENCODE_AUDIO_EXCHANGE
+            - name: ENCODE_AUDIO_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: ENCODE_AUDIO_QUEUE
+            # redis
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_DB
+            # others
+            - name: NUMBER_OF_WORKER
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-detect-video-configmap
+                  key: NUMBER_OF_WORKER
+            - name: ENCODE_VIDEO_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-detect-video-configmap
+                  key: ENCODE_VIDEO_SIZE
+            - name: VIDEO_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-video-configmap
+                  key: video_path
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development
+          volumeMounts:
+            - name: videos-data
+              mountPath: /var/videos/
+      volumes:
+        - name: videos-data
+          persistentVolumeClaim:
+            claimName: videos-pvc

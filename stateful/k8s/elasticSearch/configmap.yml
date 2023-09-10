@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidetube-elastic-configmap
+data:
+  discovery_type: "single-node"
+  ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+  xpack_security_enabled: "false"
+  ELASTIC_HOST: elasticsearch
+  ELASTIC_PORT: "9200"
+  ELASTIC_INDEX: "videos"

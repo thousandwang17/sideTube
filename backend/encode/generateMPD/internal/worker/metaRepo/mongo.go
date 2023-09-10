@@ -2,7 +2,7 @@
  * @Author: dennyWang thousandwang17@gmail.com
  * @Date: 2023-02-22 20:59:24
  * @LastEditors: dennyWang thousandwang17@gmail.com
- * @LastEditTime: 2023-04-05 16:48:16
+ * @LastEditTime: 2023-09-02 12:32:51
  * @FilePath: /generateMPD/internal/worker/metaRepo/mongo.go
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -44,7 +44,7 @@ func NewMongoRepo(db *mongo.Client) worker.MetaRepo {
 	return &mongolRepo{
 		db:         db,
 		database:   os.Getenv("MONGO_DATABASE"),
-		collection: os.Getenv("MONGO_COLLECTION"),
+		collection: os.Getenv("MONGO_VIDEO_COLLECTION"),
 	}
 }
 

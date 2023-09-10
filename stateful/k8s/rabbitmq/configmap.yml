@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidetube-rabbitmq-configmap
+data:
+  RABBIT_HOST: rabbitmq-management
+  RABBIT_PORT: "5672"
+  MERGE_VIDEO_EXCHANGE: "merge_video_exchange"
+  MERGE_VIDEO_QUEUE: "merge_video"
+  DECTED_VIDEO_EXCHANGE: "dected_video_exchange"
+  DECTED_VIDEO_QUEUE: "dected_video"
+  ENCODE_VIDEO_EXCHANGE: "encode_video_exchange"
+  ENCODE_VIDEO_QUEUE: "encode_video"
+  ENCODE_AUDIO_EXCHANGE: "encode_audio_exchange"
+  ENCODE_AUDIO_QUEUE: "encode_audio"
+  MERGE_ENCODED_VIDEO_EXCHANGE: "merge_encoded_video_exchange"
+  MERGE_ENCODED_VIDEO_QUEUE: "merge_encoded_video"
+  GENERATE_MPD_EXCHANGE: "generate_mpd_exchange"
+  GENERATE_MPD_QUEUE: "generate_mpd"
+  INSERT_SEARCH_ENGINE_EXCHANGE: "insert_search_engine_exchange"
+  INSERT_SEARCH_ENGINE_QUEUE: "insert_search_engine"

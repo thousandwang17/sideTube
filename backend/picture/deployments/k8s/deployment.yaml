@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-picture
+spec:
+  replicas: 1 # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: sidetube-picture
+  template:
+    metadata:
+      labels:
+        app: sidetube-picture
+    spec:
+      containers:
+        - name: sidetube-picture-container
+          image: sidetube-registry:52271/sidetube-picture:latest
+          ports:
+            - containerPort: 80 # The port your application listens on
+          env:
+            - name: HTTP_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-picture-configmap
+                  key: http_address
+            - name: HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-picture-configmap
+                  key: http_port
+            - name: CROS_ALLOW_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: cros_allow_origin
+            - name: VIDEO_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-video-configmap
+                  key: video_path
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development
+          volumeMounts:
+            - name: videos-data
+              mountPath: /var/videos/
+      volumes:
+        - name: videos-data
+          persistentVolumeClaim:
+            claimName: videos-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidetube-picture-service
+spec:
+  selector:
+    app: sidetube-picture
+  ports:
+    - protocol: TCP
+      port: 80 # The port you want to expose within the cluster
+      targetPort: 80 # The port your application listens on within the pod
+  type: LoadBalancer # Change to 'LoadBalancer' or 'NodePort' if you need external access

@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-mongo-deployment
+  labels:
+    app: sidetube-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sidetube-mongo
+  template:
+    metadata:
+      labels:
+        app: sidetube-mongo
+    spec:
+      containers:
+        - name: sidetube-mongo
+          image: mongo:latest
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: root
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: root
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidetube-mongo-svc
+spec:
+  selector:
+    app: sidetube-mongo
+  type: NodePort # Uncomment for external service
+  ports:
+    - protocol: TCP
+      port: 27017 # The port you want to expose within the cluster
+      targetPort: 27017 # The port your application listens on within the pod
+      nodePort: 30001
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-mongo-express-deployment
+  labels:
+    app: sidetube-mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sidetube-mongo-express
+  template:
+    metadata:
+      labels:
+        app: sidetube-mongo-express
+    spec:
+      containers:
+        - name: sidetube-mongo-express
+          image: mongo-express:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+              value: root
+            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+              value: root
+            - name: ME_CONFIG_MONGODB_SERVER
+              value: sidetube-mongo-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidetube-mongo-express-svc
+spec:
+  selector:
+    app: sidetube-mongo-express
+  type: NodePort # Uncomment for external service
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      nodePort: 30000

@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sidetube-merge-encoded-video
+spec:
+  replicas: 1 # Number of replicas you want to run
+  selector:
+    matchLabels:
+      app: sidetube-merge-encoded-video
+  template:
+    metadata:
+      labels:
+        app: sidetube-merge-encoded-video
+    spec:
+      containers:
+        - name: sidetube-merge-encoded-video-container
+          image: sidetube-registry:52271/sidetube-merge-encoded-video:latest
+          env:
+            #rabbitmq
+            - name: RABBIT_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: RABBIT_HOST
+            - name: RABBIT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: RABBIT_PORT
+            - name: RABBIT_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-rabbitmq-secret
+                  key: RABBIT_USER_NAME
+            - name: RABBIT_USER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: sidetube-rabbitmq-secret
+                  key: RABBIT_USER_PASS
+            - name: MERGE_ENCODED_VIDEO_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: MERGE_ENCODED_VIDEO_EXCHANGE
+            - name: MERGE_ENCODED_VIDEO_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: MERGE_ENCODED_VIDEO_QUEUE
+            - name: GENERATE_MPD_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: GENERATE_MPD_QUEUE
+            - name: GENERATE_MPD_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-rabbitmq-configmap
+                  key: GENERATE_MPD_EXCHANGE
+            # redis
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-redis-configmap
+                  key: REDIS_DB
+            # others
+            - name: NUMBER_OF_WORKER
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-merge-encoded-video-configmap
+                  key: NUMBER_OF_WORKER
+            - name: VIDEO_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-video-configmap
+                  key: video_path
+            - name: DEVELOPMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: sidetube-configmap
+                  key: development
+          volumeMounts:
+            - name: videos-data
+              mountPath: /var/videos/
+      volumes:
+        - name: videos-data
+          persistentVolumeClaim:
+            claimName: videos-pvc
